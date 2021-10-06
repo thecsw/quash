@@ -23,7 +23,7 @@ func main() {
 	}
 
 	for index, command := range commands {
-
+		//background := strings.Contains(command, "&")
 		paths, _ := exec.LookPath(command)
 
 		//pid, err := syscall.ForkExec(

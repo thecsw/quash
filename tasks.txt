@@ -1,0 +1,8 @@
+Jacob:
+  piping
+  foreground/background
+
+Sandy:
+  set variables
+  change directories
+  quit exit
