@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 )
 
@@ -12,16 +12,34 @@ func main() {
 	fmt.Printf("> ")
 	fmt.Scanf("%s", &input)
 
-	paths, _ := exec.LookPath(input)
+	// Create pipes
+	// pipeOneRead, pipeOneWrite, _ := os.Pipe()
+	// pipeTwoRead, pipeTwoWrite, _ := os.Pipe()
 
-	pid, err := syscall.ForkExec(paths, []string{input}, &syscall.ProcAttr{
-		Dir:   "",
-		Env:   []string{},
-		Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
-		Sys:   &syscall.SysProcAttr{},
-	})
-	if err != nil {
-		panic(err)
+	commands := strings.Split(input, "|")
+	for _, command := range commands {
+
+		paths, _ := exec.LookPath(command)
+
+		pid, err := syscall.ForkExec(
+			paths, []string{command}, &syscall.ProcAttr{
+				Dir:   "",
+				Env:   []string{},
+				Files: []uintptr{
+					// os.Stdin.Fd(),
+					// pipeOneWrite.Fd()},
+					// pipeOneRead.Fd(),
+					// pipeTwoWrite.Fd()
+					// ...
+					// pipeNRead().Fd()
+					// os.Stdout.Fd()
+				},
+				Sys: &syscall.SysProcAttr{},
+			})
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("New process's ID:", pid)
+
 	}
-	fmt.Println("New process's ID:", pid)
 }
