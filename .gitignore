@@ -1,3 +1,6 @@
+.saves
+quash
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
