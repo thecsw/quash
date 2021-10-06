@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 )
 
 func main() {
@@ -11,14 +12,16 @@ func main() {
 	fmt.Printf("> ")
 	fmt.Scanf("%s", &input)
 
-	// pid, err := syscall.ForkExec(input, []string{}, &syscall.ProcAttr{})
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println(pid)
+	paths, _ := exec.LookPath(input)
 
-	cmd := exec.Command(input)
-	cmd.Stdout = os.Stdout
-	cmd.Run()
-
+	pid, err := syscall.ForkExec(paths, []string{input}, &syscall.ProcAttr{
+		Dir:   "",
+		Env:   []string{},
+		Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
+		Sys:   &syscall.SysProcAttr{},
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("New process's ID:", pid)
 }
