@@ -12,14 +12,17 @@ func main() {
 	// read one line of input from Stdin
 	reader := bufio.NewReader(os.Stdin)
 	input, _ := reader.ReadString('\n')
-	input = strings.TrimSuffix(input, "\n")
+	// input = strings.TrimSuffix(input, "\n")
 
 	// fmt.Printf("> ")
 	// fmt.Scanf("%s", &input)
 	// fmt.Println(input)
 
 	// split input into different commands to be executed
-	commands := strings.Split(input, " | ")
+	commands := strings.Split(input, "|")
+	for index, command := range commands {
+		commands[index] = strings.TrimSpace(command)
+	}
 
 	// make pipes to communicate between the different processes
 	pipeRead := make([]*os.File, len(commands)-1)
