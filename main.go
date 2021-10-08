@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -13,15 +14,18 @@ import (
 )
 
 const (
-	quashErrPrefix = "\033[91mquash: \033[0m"
-	quashErrBadSet = "bad set format"
-	quashErrBadCd  = "bad cd format"
-	quashErrNoDir  = "bad target directory"
+	quashErrPrefix  = "\033[91mquash: \033[0m"
+	quashErrBadSet  = "bad set format"
+	quashErrBadCd   = "bad cd format"
+	quashErrNoDir   = "bad target directory"
+	quashErrBadKill = "bad kill format"
 )
 
 var (
-	currDir = ""
-	myEnv   = os.Environ()
+	currDir   = ""
+	myEnv     = os.Environ()
+	nextJobID = int(1)
+	jobList   = make(map[int]job)
 )
 
 func main() {
@@ -134,12 +138,46 @@ func takeInput() {
 			return
 		}
 
+		if cmdName == "kill" {
+			if len(args) != 3 {
+				quashError(quashErrBadKill)
+				return
+			}
+			sig, err1 := strconv.Atoi(args[1])
+			jobID, err2 := strconv.Atoi(args[2])
+			if err1 != nil || err2 != nil {
+				quashError("Incorrect usage for kill command : SIGNUM and JOBID must be integers\n")
+				return
+			}
+			killed, ok := jobList[jobID]
+			if !ok {
+				quashError("Job number %d does not exist", jobID)
+				return
+			}
+
+			err := killed.process.Signal(syscall.Signal(sig))
+			if err != nil {
+				panic(err)
+			}
+			return
+		}
+
+		if cmdName == "jobs" {
+			for _, v := range jobList {
+				fmt.Printf("[%d] %d %s\n", v.jid, v.pid, v.command)
+			}
+			return
+		}
+
+		jid := nextJobID
+		var newJob = job{jid: jid, command: command}
+
 		// see if & present, signifies if program runs in background
 		background := strings.Contains(command, "&")
 		if background {
-			// remove the & from args. Can we guarantee that & is
-			// the last command? I believe bash syntax forces this
+			// remove the & from args
 			args = args[:len(args)-1]
+			nextJobID += 1
 		}
 
 		// find path to executable
@@ -173,6 +211,12 @@ func takeInput() {
 		if !background {
 			process, _ := os.FindProcess(pid)
 			process.Wait()
+		} else {
+			process, _ := os.FindProcess(pid)
+			newJob.pid = pid
+			newJob.process = process
+			jobList[jid] = newJob
+			go trackChild(jid)
 		}
 	}
 }
@@ -271,6 +315,8 @@ func closePipe(index int, readPipe []*os.File, writePipe []*os.File) {
 	}
 }
 
+// lookPath tries to find an absolute path to an executable name by searching directories on the PATH.
+// If the name is an absolute path or a shortened path (./) then this path is returned
 func lookPath(name string) (string, error) {
 	if filepath.IsAbs(name) { //if the user has absolute path then we good
 		return name, nil
@@ -299,4 +345,28 @@ func lookPath(name string) (string, error) {
 	err := errors.New("executable not found")
 	return "", err
 
+}
+
+// trackChild keeps track of jobs that run in the background.
+// The main goal is printing when the process is created, terminates, or is killed
+func trackChild(jid int) {
+	fmt.Printf("\n[%d] %d running in background\n", jid, jobList[jid].pid)
+	state, err := jobList[jid].process.Wait()
+	if err != nil {
+		panic(err)
+	}
+
+	if state.ExitCode() == 0 {
+		fmt.Printf("[%d] %d finished %s\n", jobList[jid].jid, jobList[jid].pid, jobList[jid].command)
+	} else if state.ExitCode() == -1 {
+		fmt.Printf("[%d] %d killed by error or signal", jobList[jid].jid, jobList[jid].pid)
+	}
+	delete(jobList, jid)
+}
+
+type job struct {
+	pid     int         //pid associated with running process
+	jid     int         //jid associated with this job
+	command string      //the command that created this job
+	process *os.Process //a reference to the running process
 }
