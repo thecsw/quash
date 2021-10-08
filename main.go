@@ -321,10 +321,17 @@ func lookPath(name string) (string, error) {
 	if filepath.IsAbs(name) { //if the user has absolute path then we good
 		return name, nil
 	}
-	if strings.Index(name, "./") == 0 { //if the user uses ./ as a shortcut to currDir. Still a predefined path so we good
-		name = strings.Replace(name, ".", currDir, 1) // ./ becomes /.../name
-		return name, nil
+
+	absPath := filepath.Join(currDir, name)
+	_, err := os.Stat(absPath)
+	if !os.IsNotExist(err) {
+		return absPath, nil
 	}
+
+	// if strings.Index(name, "./") == 0 { //if the user uses ./ as a shortcut to currDir. Still a predefined path so we good
+	// 	name = strings.Replace(name, ".", currDir, 1) // ./ becomes /.../name
+	// 	return name, nil
+	// }
 	path := getenv("PATH")
 	if path == "" {
 		err := errors.New("executable not found")
@@ -342,7 +349,7 @@ func lookPath(name string) (string, error) {
 			}
 		}
 	}
-	err := errors.New("executable not found")
+	err = errors.New("executable not found")
 	return "", err
 
 }
