@@ -13,10 +13,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	quashErrPrefix = "\033[91mquash: \033[0m"
+	quashErrBadSet = "bad set format"
+	quashErrBadCd  = "bad cd format"
+	quashErrNoDir  = "bad target directory"
+)
+
 var (
-	currDir    = ""
-	myEnv      = os.Environ()
-	cmdHistory []string
+	currDir = ""
+	myEnv   = os.Environ()
 )
 
 func main() {
@@ -35,7 +41,14 @@ func main() {
 // takeInput takes the user's shell input and runs that command
 func takeInput() {
 	// read one line of input from Stdin
-	fmt.Fprintf(os.Stdout, "\033[94m%s\033[0m:\033[96m%s\033[0m \033[93m%s\033[0m ", "quash", filepath.Base(currDir), "λ")
+	// The print format is "quash:DIRNAME λ"
+	fmt.Fprintf(
+		os.Stdout,
+		"\033[94m%s\033[0m:\033[96m%s\033[0m \033[93m%s\033[0m ",
+		"quash",
+		filepath.Base(currDir),
+		"λ",
+	)
 	reader := bufio.NewReader(os.Stdin)
 	input, err := reader.ReadString('\n')
 	if err != nil {
@@ -77,12 +90,12 @@ func takeInput() {
 		// Check if we have the set command
 		if cmdName == "set" {
 			if len(args) != 2 {
-				fmt.Fprintf(os.Stderr, "quash: bad set format")
+				quashError(quashErrBadSet)
 				return
 			}
 			parts := strings.Split(args[1], "=")
 			if len(parts) != 2 {
-				fmt.Fprintf(os.Stderr, "quash: bad set format")
+				quashError(quashErrBadSet)
 				return
 			}
 			envName := parts[0]
@@ -99,17 +112,19 @@ func takeInput() {
 				return
 			}
 			if len(args) != 2 {
-				fmt.Fprintf(os.Stdout, "quash: bad cd format")
+				quashError(quashErrBadCd)
 				return
 			}
+			// Join our current directory with the relative one
 			dirToChange := filepath.Join(currDir, args[1])
+			// If absolute path given, switch to it absolutely
 			if filepath.IsAbs(args[1]) {
 				dirToChange = args[1]
 			}
 			// Check if that directory actually exists or not
 			_, err := os.Stat(dirToChange)
 			if os.IsNotExist(err) {
-				fmt.Fprintf(os.Stderr, "quash: directory doesn't exist: %s", dirToChange)
+				quashError(quashErrNoDir+": %s", dirToChange)
 				return
 			}
 			currDir = dirToChange
@@ -127,7 +142,7 @@ func takeInput() {
 		// find path to executable
 		paths, err := exec.LookPath(cmdName)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "quash: %s: %s\n", errors.Unwrap(err), cmdName)
+			quashError("%s : %s", errors.Unwrap(err), cmdName)
 			return
 		}
 		// make actual fork happen
@@ -195,6 +210,7 @@ func fileDescriptor(index int, readPipe []*os.File, writePipe []*os.File) []uint
 	}
 }
 
+// getenv gets an env value from myEnv
 func getenv(key string) string {
 	// Try to find and replace
 	for _, env := range myEnv {
@@ -207,6 +223,12 @@ func getenv(key string) string {
 	return ""
 }
 
+// quashError prints a quash error into Stderr
+func quashError(str string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, quashErrPrefix+str+"\n", args...)
+}
+
+// setenv sets an env by key in myEnv
 func setenv(key, value string) {
 	entry := key + "=" + value
 	// Try to find and replace
