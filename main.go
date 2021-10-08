@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -59,6 +58,10 @@ func takeInput() {
 		}
 		// If something happened while reading, spit it out
 		fmt.Fprintf(os.Stderr, "quash: %s\n", err.Error())
+		return
+	}
+
+	if input == "\n" {
 		return
 	}
 
@@ -140,9 +143,9 @@ func takeInput() {
 		}
 
 		// find path to executable
-		paths, err := exec.LookPath(cmdName)
+		paths, err := lookPath(cmdName)
 		if err != nil {
-			quashError("%s : %s", errors.Unwrap(err), cmdName)
+			quashError("%s : %s", err, cmdName)
 			return
 		}
 		// make actual fork happen
@@ -266,4 +269,34 @@ func closePipe(index int, readPipe []*os.File, writePipe []*os.File) {
 		readPipe[index-1].Close()
 		writePipe[index].Close()
 	}
+}
+
+func lookPath(name string) (string, error) {
+	if filepath.IsAbs(name) { //if the user has absolute path then we good
+		return name, nil
+	}
+	if strings.Index(name, "./") == 0 { //if the user uses ./ as a shortcut to currDir. Still a predefined path so we good
+		name = strings.Replace(name, ".", currDir, 1) // ./ becomes /.../name
+		return name, nil
+	}
+	path := getenv("PATH")
+	if path == "" {
+		err := errors.New("executable not found")
+		return "", err
+	}
+	directories := strings.Split(path, ":")
+	for _, directory := range directories {
+		dirInfo, err := os.ReadDir(directory)
+		if err != nil {
+			quashError("%s : %s", errors.Unwrap(err), directory)
+		}
+		for _, file := range dirInfo {
+			if file.Name() == name && !file.IsDir() {
+				return directory + "/" + name, nil
+			}
+		}
+	}
+	err := errors.New("executable not found")
+	return "", err
+
 }
