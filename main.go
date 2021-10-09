@@ -424,7 +424,8 @@ func lookPath(name string) (string, error) {
 	for _, directory := range directories {
 		dirInfo, err := os.ReadDir(directory)
 		if err != nil {
-			quashError("%s : %s", errors.Unwrap(err), directory)
+			//quashError("%s : %s", errors.Unwrap(err), directory)
+			continue
 		}
 		for _, file := range dirInfo {
 			if file.Name() == name && !file.IsDir() {
