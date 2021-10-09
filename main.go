@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -26,6 +27,10 @@ var (
 	myEnv     = os.Environ()
 	nextJobID = int(1)
 	jobList   = make(map[int]job)
+
+	stdinFileRegex  = regexp.MustCompile(`<\s*([^<> ]+)`)
+	stdoutFileRegex = regexp.MustCompile(`[^2]?>\s*([^<> ]+)`)
+	stderrFileRegex = regexp.MustCompile(`2>\s*([^<> ]+)`)
 )
 
 func main() {
@@ -61,7 +66,7 @@ func takeInput() {
 			exit()
 		}
 		// If something happened while reading, spit it out
-		fmt.Fprintf(os.Stderr, "quash: %s\n", err.Error())
+		quashError("%s", err.Error())
 		return
 	}
 
@@ -85,6 +90,69 @@ func takeInput() {
 
 	// fork and execute each command as its own process
 	for index, command := range commands {
+
+		// Find all of our destinations
+		stdinDestination := os.Stdin
+		stdoutDestination := os.Stdout
+		stderrDestination := os.Stderr
+
+		// See if we are redirecting to an error file with "2>"
+		isStderrRedirected := strings.Contains(command, "2>")
+		if isStderrRedirected {
+			matches := stderrFileRegex.FindAllStringSubmatch(command, -1)
+			if len(matches) < 1 {
+				quashError("bad stderr redirect")
+				return
+			}
+			filename := matches[0][1]
+			errfile, err := os.Create(filename)
+			defer errfile.Close()
+			if err != nil {
+				quashError("couldn't open stderr file %s", err.Error())
+				return
+			}
+			stderrDestination = errfile
+			command = stderrFileRegex.ReplaceAllString(command, "")
+		}
+
+		// See if we are redirecting to a file with ">" or "1>"
+		// Make sure we're not matching the error redirect with "2>"
+		isStdoutRedirected := strings.Contains(command, ">")
+		if isStdoutRedirected {
+			matches := stdoutFileRegex.FindAllStringSubmatch(command, -1)
+			if len(matches) < 1 {
+				quashError("bad stdout redirect")
+				return
+			}
+			filename := matches[0][1]
+			outfile, err := os.Create(filename)
+			defer outfile.Close()
+			if err != nil {
+				quashError("couldn't open stdout file %s", err.Error())
+				return
+			}
+			stdoutDestination = outfile
+			command = stdoutFileRegex.ReplaceAllString(command, "")
+		}
+
+		isStdinRedirected := strings.Contains(command, "<")
+		if isStdinRedirected {
+			matches := stdinFileRegex.FindAllStringSubmatch(command, -1)
+			if len(matches) < 1 {
+				quashError("bad stdin redirect")
+				return
+			}
+			filename := matches[0][1]
+			infile, err := os.Open(filename)
+			defer infile.Close()
+			if err != nil {
+				quashError("couldn't open stdin file: %s", err.Error())
+				return
+			}
+			stdinDestination = infile
+			command = stdinFileRegex.ReplaceAllString(command, "")
+		}
+
 		//seperate command into its executable name and arguments
 		args := strings.Split(command, " ")
 		cmdName := args[0]
@@ -190,9 +258,16 @@ func takeInput() {
 		pid, err := syscall.ForkExec(
 			//_, err := syscall.ForkExec(
 			paths, args, &syscall.ProcAttr{
-				Dir:   currDir,
-				Env:   myEnv,
-				Files: fileDescriptor(index, pipeRead, pipeWrite),
+				Dir: currDir,
+				Env: myEnv,
+				Files: fileDescriptor(
+					index,
+					pipeRead,
+					pipeWrite,
+					stdinDestination,
+					stdoutDestination,
+					stderrDestination,
+				),
 				//Sys: &syscall.SysProcAttr{Foreground: !background},
 
 				// having trouble setting Foreground to true without program failing
@@ -216,6 +291,7 @@ func takeInput() {
 			newJob.pid = pid
 			newJob.process = process
 			jobList[jid] = newJob
+			fmt.Printf("[%d] %d running in background\n", jid, jobList[jid].pid)
 			go trackChild(jid)
 		}
 	}
@@ -224,36 +300,43 @@ func takeInput() {
 // fileDescriptor returns a custom file descriptor for a call to ForkExec
 // if there is only one command with no pipes, Stdin Stdout and Stderr are used
 // pipes overwrite read, write, or both for processes inside of a pipe chain.
-func fileDescriptor(index int, readPipe []*os.File, writePipe []*os.File) []uintptr {
+func fileDescriptor(
+	index int,
+	readPipe []*os.File,
+	writePipe []*os.File,
+	in *os.File,
+	out *os.File,
+	err *os.File,
+) []uintptr {
 	// One command, so no pipes
 	if len(readPipe) == 0 {
 		return []uintptr{
-			os.Stdin.Fd(),
-			os.Stdout.Fd(),
-			os.Stderr.Fd(),
+			in.Fd(),
+			out.Fd(),
+			err.Fd(),
 		}
 	}
 	// first in a chain
 	if index == 0 {
 		return []uintptr{
-			os.Stdin.Fd(),
+			in.Fd(),
 			writePipe[0].Fd(),
-			os.Stderr.Fd(),
+			err.Fd(),
 		}
 	}
 	// last in a chain
 	if index == len(readPipe) {
 		return []uintptr{
 			readPipe[index-1].Fd(),
-			os.Stdout.Fd(),
-			os.Stderr.Fd(),
+			out.Fd(),
+			err.Fd(),
 		}
 	}
 	// middle of a chain
 	return []uintptr{
 		readPipe[index-1].Fd(),
 		writePipe[index].Fd(),
-		os.Stderr.Fd(),
+		err.Fd(),
 	}
 }
 
@@ -357,7 +440,6 @@ func lookPath(name string) (string, error) {
 // trackChild keeps track of jobs that run in the background.
 // The main goal is printing when the process is created, terminates, or is killed
 func trackChild(jid int) {
-	fmt.Printf("\n[%d] %d running in background\n", jid, jobList[jid].pid)
 	state, err := jobList[jid].process.Wait()
 	if err != nil {
 		panic(err)
