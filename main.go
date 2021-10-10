@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -28,6 +29,8 @@ func main() {
 
 // takeInput takes the user's shell input and runs that command
 func takeInput() {
+	signal.Ignore(os.Interrupt)
+
 	// Our reader buffers the input
 	reader := bufio.NewReader(os.Stdin)
 
@@ -43,7 +46,6 @@ func takeInput() {
 
 	input, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Println(input, err)
 		// If user clicked Ctrl-D, then exit
 		if err == io.EOF {
 			fmt.Fprintf(os.Stdout, "\n")
