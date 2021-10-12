@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -61,7 +62,7 @@ func setStdinRedirect(
 	}
 	*destination = infile
 	command = stdinFileRegex.ReplaceAllString(command, "")
-	return command, nil
+	return strings.TrimSpace(command), nil
 }
 
 // setStdoutRedirect sets an stdout file redirect if > or 1> is found
@@ -78,7 +79,7 @@ func setStdoutRedirect(
 	}
 	*destination = outfile
 	command = stdoutFileRegex.ReplaceAllString(command, "")
-	return command, nil
+	return strings.TrimSpace(command), nil
 }
 
 // setStderrRedirect sets an error file redirect if 2> is found
@@ -95,5 +96,5 @@ func setStderrRedirect(
 	}
 	*destination = errfile
 	command = stderrFileRegex.ReplaceAllString(command, "")
-	return command, nil
+	return strings.TrimSpace(command), nil
 }
