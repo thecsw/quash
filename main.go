@@ -10,10 +10,11 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
-	isTerminal = false
+	isTerminal = terminal.IsTerminal(int(os.Stdin.Fd()))
 )
 
 func main() {
@@ -29,9 +30,6 @@ func main() {
 
 	// Our reader buffers the input
 	reader := bufio.NewReader(os.Stdin)
-
-	stat, _ := os.Stdin.Stat()
-	isTerminal = stat.Mode()&os.ModeCharDevice != 0
 	for {
 		runShell(reader, isTerminal)
 	}
