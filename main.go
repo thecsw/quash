@@ -31,12 +31,12 @@ func main() {
 	// Our reader buffers the input
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		runShell(reader, isTerminal)
+		runShell(reader)
 	}
 }
 
 // runShell takes the user's shell input and runs that command
-func runShell(reader *bufio.Reader, isTerminal bool) {
+func runShell(reader *bufio.Reader) {
 	// Greet the user if we are in the terminal
 	if isTerminal {
 		greet()
