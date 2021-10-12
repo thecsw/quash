@@ -98,6 +98,8 @@ func setVariable(args []string) {
 
 // exit exits quash on "exit" or "quit" or "Ctrl-D"
 func exit(args []string) {
-	fmt.Fprintf(os.Stdout, "exit\n")
+	if isTerminal {
+		fmt.Fprintf(os.Stdout, "exit\n")
+	}
 	os.Exit(0)
 }

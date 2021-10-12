@@ -12,6 +12,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	isTerminal = false
+)
+
 func main() {
 	// Set the current directory
 	var err error
@@ -23,24 +27,25 @@ func main() {
 	// Ignore SIGINT
 	signal.Ignore(os.Interrupt)
 
-	// Start taking the input in a loop
+	// Our reader buffers the input
+	reader := bufio.NewReader(os.Stdin)
+
+	stat, _ := os.Stdin.Stat()
+	isTerminal = stat.Mode()&os.ModeCharDevice != 0
 	for {
-		runShell()
+		runShell(reader, isTerminal)
 	}
 }
 
 // runShell takes the user's shell input and runs that command
-func runShell() {
-	// Greet the user
-	greet()
-
-	// Our reader buffers the input
-	reader := bufio.NewReader(os.Stdin)
-	input := takeInput(reader)
-	// If user presses enter, then skip
-	if input == NEWLINE {
-		return
+func runShell(reader *bufio.Reader, isTerminal bool) {
+	// Greet the user if we are in the terminal
+	if isTerminal {
+		greet()
 	}
+
+	// Take the input line from the reader
+	input := takeInput(reader)
 
 	// Actually execute the user input
 	executeInput(input)
@@ -52,7 +57,9 @@ func takeInput(reader *bufio.Reader) string {
 	if err != nil {
 		// If user clicked Ctrl-D, then exit
 		if err == io.EOF {
-			fmt.Fprint(os.Stdout, NEWLINE)
+			if isTerminal {
+				fmt.Fprint(os.Stdout, NEWLINE)
+			}
 			exit(nil)
 		}
 		// If something happened while reading, spit it out
@@ -64,6 +71,10 @@ func takeInput(reader *bufio.Reader) string {
 
 // executeInput takes an input string and runs (attempts) the commands in it.
 func executeInput(input string) {
+	// If user presses enter, then skip
+	if input == NEWLINE {
+		return
+	}
 	// split input into different commands to be executed
 	commands := strings.Split(input, "|")
 	for index, command := range commands {
