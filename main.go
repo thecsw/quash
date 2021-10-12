@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -21,44 +20,50 @@ func main() {
 		panic(errors.Wrap(err, "quash: WHERE AM I?!"))
 	}
 
+	// Ignore SIGINT
+	signal.Ignore(os.Interrupt)
+
 	// Start taking the input in a loop
 	for {
-		takeInput()
+		runShell()
 	}
 }
 
-// takeInput takes the user's shell input and runs that command
-func takeInput() {
-	signal.Ignore(os.Interrupt)
+// runShell takes the user's shell input and runs that command
+func runShell() {
+	// Greet the user
+	greet()
 
 	// Our reader buffers the input
 	reader := bufio.NewReader(os.Stdin)
+	input := takeInput(reader)
+	// If user presses enter, then skip
+	if input == NEWLINE {
+		return
+	}
 
-	// read one line of input from Stdin
-	// The print format is "quash:DIRNAME λ"
-	fmt.Fprintf(
-		os.Stdout,
-		"\033[94m%s\033[0m:\033[96m%s\033[0m \033[93m%s\033[0m ",
-		"quash",
-		filepath.Base(currDir),
-		"λ",
-	)
+	// Actually execute the user input
+	executeInput(input)
+}
 
+// takeInput reads a newline-terminated input from a bufio reader
+func takeInput(reader *bufio.Reader) string {
 	input, err := reader.ReadString('\n')
 	if err != nil {
 		// If user clicked Ctrl-D, then exit
 		if err == io.EOF {
-			fmt.Fprintf(os.Stdout, "\n")
+			fmt.Fprint(os.Stdout, NEWLINE)
 			exit(nil)
 		}
 		// If something happened while reading, spit it out
 		quashError("%s", err.Error())
-		return
+		return NEWLINE
 	}
-	if input == "\n" {
-		return
-	}
+	return input
+}
 
+// executeInput takes an input string and runs (attempts) the commands in it.
+func executeInput(input string) {
 	// split input into different commands to be executed
 	commands := strings.Split(input, "|")
 	for index, command := range commands {
@@ -69,6 +74,7 @@ func takeInput() {
 
 	// fork and execute each command as its own process
 	for index, command := range commands {
+		var err error
 		// Find all of our destinations
 		stdinDestination := os.Stdin
 		stdoutDestination := os.Stdout
@@ -152,4 +158,5 @@ func takeInput() {
 			go trackChild(jid)
 		}
 	}
+
 }
