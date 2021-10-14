@@ -1,17 +1,20 @@
-GO111MODULE=on
-GOOS=linux
-GOARCH=amd64
+GO111MODULE = on
 export GO111MODULE
-export GOOS
-export GOARCH
+
+BINARY_NAME = quash
+
 default: build
 
 # build just builds a native executable
 build:
 	go get -u -v ./...
-	go build -v
+	go build -v -o ${BINARY_NAME}
 
-# build_linux builds a linux x86_64 binary
+# linux builds a linux x86_64 binary
 linux:
 	go get -u -v ./...
-	go build -v
+	GOOS=linux GOARCH=amd64 go build -v -o ${BINARY_NAME}
+
+clean:
+	go clean
+	rm -vf ${BINARY_NAME}
