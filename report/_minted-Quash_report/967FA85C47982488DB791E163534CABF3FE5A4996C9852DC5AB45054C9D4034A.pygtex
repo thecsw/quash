@@ -1,0 +1,38 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{c+c1}{// lookPath tries to find an absolute path to an executable}
+\PYG{c+c1}{// name by searching directories on the PATH}
+\PYG{c+c1}{// If the name is an absolute path or a shortened path (./)}
+\PYG{c+c1}{// then this path is returned}
+\PYG{k+kd}{func} \PYG{n+nx}{lookPath}\PYG{p}{(}\PYG{n+nx}{name} \PYG{k+kt}{string}\PYG{p}{)} \PYG{p}{(}\PYG{k+kt}{string}\PYG{p}{,} \PYG{k+kt}{error}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+        \PYG{k}{if} \PYG{n+nx}{filepath}\PYG{p}{.}\PYG{n+nx}{IsAbs}\PYG{p}{(}\PYG{n+nx}{name}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{c+c1}{//if the user has absolute path then we good}
+                \PYG{k}{return} \PYG{n+nx}{name}\PYG{p}{,} \PYG{k+kc}{nil}
+        \PYG{p}{\PYGZcb{}}
+
+        \PYG{n+nx}{absPath} \PYG{o}{:=} \PYG{n+nx}{filepath}\PYG{p}{.}\PYG{n+nx}{Join}\PYG{p}{(}\PYG{n+nx}{currDir}\PYG{p}{,} \PYG{n+nx}{name}\PYG{p}{)}
+        \PYG{n+nx}{\PYGZus{}}\PYG{p}{,} \PYG{n+nx}{err} \PYG{o}{:=} \PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{Stat}\PYG{p}{(}\PYG{n+nx}{absPath}\PYG{p}{)}
+        \PYG{k}{if} \PYG{p}{!}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{IsNotExist}\PYG{p}{(}\PYG{n+nx}{err}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+                \PYG{k}{return} \PYG{n+nx}{absPath}\PYG{p}{,} \PYG{k+kc}{nil}
+        \PYG{p}{\PYGZcb{}}
+        \PYG{n+nx}{path} \PYG{o}{:=} \PYG{n+nx}{getenv}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}PATH\PYGZdq{}}\PYG{p}{)}
+        \PYG{k}{if} \PYG{n+nx}{path} \PYG{o}{==} \PYG{l+s}{\PYGZdq{}\PYGZdq{}} \PYG{p}{\PYGZob{}}
+                \PYG{n+nx}{err} \PYG{o}{:=} \PYG{n+nx}{errors}\PYG{p}{.}\PYG{n+nx}{New}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}executable not found\PYGZdq{}}\PYG{p}{)}
+                \PYG{k}{return} \PYG{l+s}{\PYGZdq{}\PYGZdq{}}\PYG{p}{,} \PYG{n+nx}{err}
+        \PYG{p}{\PYGZcb{}}
+        \PYG{n+nx}{directories} \PYG{o}{:=} \PYG{n+nx}{strings}\PYG{p}{.}\PYG{n+nx}{Split}\PYG{p}{(}\PYG{n+nx}{path}\PYG{p}{,} \PYG{l+s}{\PYGZdq{}:\PYGZdq{}}\PYG{p}{)}
+        \PYG{k}{for} \PYG{n+nx}{\PYGZus{}}\PYG{p}{,} \PYG{n+nx}{directory} \PYG{o}{:=} \PYG{k}{range} \PYG{n+nx}{directories} \PYG{p}{\PYGZob{}}
+                \PYG{n+nx}{dirInfo}\PYG{p}{,} \PYG{n+nx}{err} \PYG{o}{:=} \PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{ReadDir}\PYG{p}{(}\PYG{n+nx}{directory}\PYG{p}{)}
+                \PYG{k}{if} \PYG{n+nx}{err} \PYG{o}{!=} \PYG{k+kc}{nil} \PYG{p}{\PYGZob{}}
+                        \PYG{c+c1}{//quashError(\PYGZdq{}\PYGZpc{}s : \PYGZpc{}s\PYGZdq{}, errors.Unwrap(err), directory)}
+                        \PYG{k}{continue}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{k}{for} \PYG{n+nx}{\PYGZus{}}\PYG{p}{,} \PYG{n+nx}{file} \PYG{o}{:=} \PYG{k}{range} \PYG{n+nx}{dirInfo} \PYG{p}{\PYGZob{}}
+                        \PYG{k}{if} \PYG{n+nx}{file}\PYG{p}{.}\PYG{n+nx}{Name}\PYG{p}{()} \PYG{o}{==} \PYG{n+nx}{name} \PYG{o}{\PYGZam{}\PYGZam{}} \PYG{p}{!}\PYG{n+nx}{file}\PYG{p}{.}\PYG{n+nx}{IsDir}\PYG{p}{()} \PYG{p}{\PYGZob{}}
+                                \PYG{k}{return} \PYG{n+nx}{directory} \PYG{o}{+} \PYG{l+s}{\PYGZdq{}/\PYGZdq{}} \PYG{o}{+} \PYG{n+nx}{name}\PYG{p}{,} \PYG{k+kc}{nil}
+                        \PYG{p}{\PYGZcb{}}
+                \PYG{p}{\PYGZcb{}}
+        \PYG{p}{\PYGZcb{}}
+        \PYG{n+nx}{err} \PYG{p}{=} \PYG{n+nx}{errors}\PYG{p}{.}\PYG{n+nx}{New}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}executable not found\PYGZdq{}}\PYG{p}{)}
+        \PYG{k}{return} \PYG{l+s}{\PYGZdq{}\PYGZdq{}}\PYG{p}{,} \PYG{n+nx}{err}
+
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}

@@ -1,0 +1,169 @@
+% Created 2021-10-13 Wed 23:32
+% Intended LaTeX compiler: xelatex
+\documentclass[12pt]{article}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage{minted}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{setspace}
+\usepackage{subcaption}
+\usepackage{mathtools}
+\usepackage{xfrac}
+\usepackage[margin=1in]{geometry}
+\usepackage{marginnote}
+\usepackage[utf8]{inputenc}
+\usepackage{color}
+\usepackage{epsf}
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{pslatex}
+\usepackage{hyperref}
+
+%\usepackage{beton}
+%\usepackage{euler}
+%\usepackage[OT1]{fontenc}
+
+\usepackage[T1]{fontenc}
+\usepackage{newpxtext,eulerpx}
+
+\usepackage{textgreek}
+\renewcommand*{\textgreekfontmap}{%
+{phv/*/*}{LGR/neohellenic/*/*}%
+{*/b/n}{LGR/artemisia/b/n}%
+{*/bx/n}{LGR/artemisia/bx/n}%
+{*/*/n}{LGR/artemisia/m/n}%
+{*/b/it}{LGR/artemisia/b/it}%
+{*/bx/it}{LGR/artemisia/bx/it}%
+{*/*/it}{LGR/artemisia/m/it}%
+{*/b/sl}{LGR/artemisia/b/sl}%
+{*/bx/sl}{LGR/artemisia/bx/sl}%
+{*/*/sl}{LGR/artemisia/m/sl}%
+{*/*/sc}{LGR/artemisia/m/sc}%
+{*/*/sco}{LGR/artemisia/m/sco}%
+}
+\makeatletter
+\newcommand*{\rom}[1]{\expandafter\@slowromancap\romannumeral #1@}
+\makeatother
+\DeclarePairedDelimiterX{\infdivx}[2]{(}{)}{%
+#1\;\delimsize\|\;#2%
+}
+\newcommand{\infdiv}{D\infdivx}
+\DeclarePairedDelimiter{\norm}{\left\lVert}{\right\rVert}
+\DeclarePairedDelimiter{\ceil}{\left\lceil}{\right\rceil}
+\DeclarePairedDelimiter{\floor}{\left\lfloor}{\right\rfloor}
+\def\Z{\mathbb Z}
+\def\R{\mathbb R}
+\def\C{\mathbb C}
+\def\N{\mathbb N}
+\def\Q{\mathbb Q}
+\def\noi{\noindent}
+\onehalfspace
+\usemintedstyle{bw}
+\author{Sandy Urazayev, Jacob McNamee\thanks{University of Kansas (ctu@ku.edu)}}
+\date{286; 12021 H.E.}
+\title{Quash Report\\\medskip
+\large EECS 678 Project \rom{1}}
+\hypersetup{
+ pdfauthor={Sandy Urazayev, Jacob McNamee},
+ pdftitle={Quash Report},
+ pdfkeywords={},
+ pdfsubject={},
+ pdfcreator={Emacs 28.0.50 (Org mode 9.4.6)}, 
+ pdflang={English}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Quash}
+\label{sec:org40bb55e}
+Quash is the best shell in the entirety of our existence. Let's walk through
+how it's built!
+\section{Forking and Executing}
+\label{sec:org78c6a9a}
+Quash is implemented in \href{https://golang.org}{Go}, which itself is a garbage-collected language that
+runs threads to maintain the language runtime. When we want to fork from a Go
+application, the forking will only spawn a copy of the thread that initiated
+the forking. Therefore this new subprocess that just got forked lacks all the
+supporting threads that Go applications \textbf{absolutely must have} for adequate
+runtime performance. Therefore, Go does allow us to call \texttt{fork}, but we \textbf{have} to
+run \texttt{exec} immediately, such that the call and execution stack is immediately
+replaced by the newly loaded program.
+
+This is achieved by \texttt{syscall.ForkExec} library call that only spawns a
+subprocess with a loaded program and returns the new process's \texttt{pid}.
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{go}
+pid, err := syscall.ForkExec(
+        paths, args, &syscall.ProcAttr{
+                Dir:   string,
+                Env:   []string,
+                Files: []uintptr,
+                Sys:   &syscall.SysProcAttr{},
+        })
+\end{minted}
+Notice that we have to pass in a couple of parameters, where \texttt{Dir} is the
+current active directory where we are located, \texttt{Env} is a slice of strings, which
+contains our environmental variables, \texttt{Files} is a slice of unsigned file
+descriptor pointer values, and \texttt{Sys} is a struct to pass additional options.
+\section{\texttt{PATH}}
+\label{sec:org0aed56f}
+In order to run executables, we have to have a list of directors where we
+would look for one. For this, we have our \texttt{PATH} environmental variable. Quash
+solves this problem rather simply by going through all the directories in \texttt{PATH}
+and searching for an exact executable name match in their globs. The
+binary finding code is below
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{go}
+// lookPath tries to find an absolute path to an executable
+// name by searching directories on the PATH
+// If the name is an absolute path or a shortened path (./)
+// then this path is returned
+func lookPath(name string) (string, error) {
+        if filepath.IsAbs(name) { //if the user has absolute path then we good
+                return name, nil
+        }
+
+        absPath := filepath.Join(currDir, name)
+        _, err := os.Stat(absPath)
+        if !os.IsNotExist(err) {
+                return absPath, nil
+        }
+        path := getenv("PATH")
+        if path == "" {
+                err := errors.New("executable not found")
+                return "", err
+        }
+        directories := strings.Split(path, ":")
+        for _, directory := range directories {
+                dirInfo, err := os.ReadDir(directory)
+                if err != nil {
+                        //quashError("%s : %s", errors.Unwrap(err), directory)
+                        continue
+                }
+                for _, file := range dirInfo {
+                        if file.Name() == name && !file.IsDir() {
+                                return directory + "/" + name, nil
+                        }
+                }
+        }
+        err = errors.New("executable not found")
+        return "", err
+
+}
+\end{minted}
+Notice that the function would return the full path for a binary (example if
+\texttt{PATH = /usr/bin} and executable is \texttt{echo}, \texttt{lookPath} would return
+\texttt{/usr/bin/echo}). \texttt{getenv} and \texttt{setenv} are our user-defined functions that access
+the global variable \texttt{myEnv}, which holds all of our active environmental variables.
+\section{Background processes}
+\label{sec:org5570b4c}
+\end{document}

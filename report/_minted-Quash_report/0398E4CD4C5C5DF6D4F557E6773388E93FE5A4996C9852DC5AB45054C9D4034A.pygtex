@@ -1,0 +1,9 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{n+nx}{pid}\PYG{p}{,} \PYG{n+nx}{err} \PYG{o}{:=} \PYG{n+nx}{syscall}\PYG{p}{.}\PYG{n+nx}{ForkExec}\PYG{p}{(}
+        \PYG{n+nx}{paths}\PYG{p}{,} \PYG{n+nx}{args}\PYG{p}{,} \PYG{o}{\PYGZam{}}\PYG{n+nx}{syscall}\PYG{p}{.}\PYG{n+nx}{ProcAttr}\PYG{p}{\PYGZob{}}
+                \PYG{n+nx}{Dir}\PYG{p}{:}   \PYG{k+kt}{string}\PYG{p}{,}
+                \PYG{n+nx}{Env}\PYG{p}{:}   \PYG{p}{[]}\PYG{k+kt}{string}\PYG{p}{,}
+                \PYG{n+nx}{Files}\PYG{p}{:} \PYG{p}{[]}\PYG{k+kt}{uintptr}\PYG{p}{,}
+                \PYG{n+nx}{Sys}\PYG{p}{:}   \PYG{o}{\PYGZam{}}\PYG{n+nx}{syscall}\PYG{p}{.}\PYG{n+nx}{SysProcAttr}\PYG{p}{\PYGZob{}\PYGZcb{},}
+        \PYG{p}{\PYGZcb{})}
+\end{Verbatim}
