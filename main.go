@@ -73,12 +73,28 @@ func executeInput(input string) {
 	if input == NEWLINE {
 		return
 	}
+
+	// see if & present, signifies if program runs in background
+	ampCount := strings.Count(input, "&")
+	isBackground := false
+	jid := nextJobID
+	newJob := job{jid: jid, command: input, processes: make(map[int]*os.Process)}
+	if ampCount == 1 {
+		isBackground = true
+		nextJobID++
+		input = strings.TrimSpace(strings.Replace(input, "&", "", 1)) //should probably check that the amp is at the very end?
+	} else if ampCount > 1 {
+		panic("bad number of ampersands")
+		//idk error? its valid for shell commands, but way out of the scope of this project to have & as anything but a foreground/background indicator
+	}
+
 	// split input into different commands to be executed
 	commands := strings.Split(input, "|")
 	for index, command := range commands {
 		commands[index] = strings.TrimSpace(command)
 	}
 
+	newJob.numProcesses = len(commands)
 	pipeRead, pipeWrite := createPipes(len(commands) - 1)
 
 	// fork and execute each command as its own process
@@ -98,12 +114,6 @@ func executeInput(input string) {
 			return
 		}
 
-		// see if & present, signifies if program runs in background
-		isBackground := strings.Contains(command, "&")
-		if isBackground {
-			command = strings.TrimSpace(strings.Replace(command, "&", "", 1))
-		}
-
 		//seperate command into its executable name and arguments
 		args := strings.Split(command, " ")
 		cmdName := args[0]
@@ -112,12 +122,6 @@ func executeInput(input string) {
 		if builtinFunc, ok := builtins[cmdName]; ok {
 			builtinFunc(args)
 			return
-		}
-
-		jid := nextJobID
-		newJob := job{jid: jid, command: command}
-		if isBackground {
-			nextJobID++
 		}
 
 		// find path to executable
@@ -160,13 +164,18 @@ func executeInput(input string) {
 			process, _ := os.FindProcess(pid)
 			process.Wait()
 		} else {
+			newJob.pid = append(newJob.pid, pid)
+
 			process, _ := os.FindProcess(pid)
-			newJob.pid = pid
-			newJob.process = process
+			newJob.processes[pid] = process
 			jobList[jid] = newJob
-			fmt.Printf("[%d] %d running in background\n", jid, jobList[jid].pid)
-			go trackChild(jid)
+			if index == 0 {
+				fmt.Printf("[%d] %d running in background\n", jid, jobList[jid].pid)
+			}
 		}
 	}
 
+	if isBackground {
+		go trackChild(jid)
+	}
 }

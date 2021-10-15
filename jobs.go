@@ -6,39 +6,51 @@ import (
 )
 
 var (
-	nextJobID = 1
-	jobList   = make(map[int]job)
+	nextJobID         = 1
+	jobList           = make(map[int]job)
+	runningProcessPid = make(map[int]int)
 )
 
 // trackChild keeps track of jobs that run in the background
 // The main goal is printing when the process is created,
 // terminates, or is killed
 func trackChild(jid int) {
-	state, err := jobList[jid].process.Wait()
-	if err != nil {
-		panic(err)
+	itr := 0
+	for len(jobList[jid].processes) > 0 {
+		pid := jobList[jid].pid[itr]
+		runningProcessPid[jid] = pid
+		state, err := jobList[jid].processes[pid].Wait()
+		if err != nil {
+			panic(err)
+		} else {
+			if state.ExitCode() == -1 {
+				fmt.Printf("[%d] %d killed by error or signal",
+					jobList[jid].jid, jobList[jid].pid[0])
+				delete(jobList, jid)
+				return
+			}
+			delete(jobList[jid].processes, pid)
+			itr++
+		}
 	}
 
-	switch state.ExitCode() {
-	case 0:
-		fmt.Printf("[%d] %d finished %s\n",
-			jobList[jid].jid, jobList[jid].pid,
-			jobList[jid].command)
-	case -1:
-		fmt.Printf("[%d] %d killed by error or signal",
-			jobList[jid].jid, jobList[jid].pid)
-	}
+	fmt.Printf("[%d] %d finished %s\n",
+		jobList[jid].jid, jobList[jid].pid[0],
+		jobList[jid].command)
 	delete(jobList, jid)
+	delete(runningProcessPid, jid)
 }
 
 // job is the struct that holds info about background processes
 type job struct {
-	// pid associated with running process
-	pid int
+	// how many processes are part of the job
+	numProcesses int
+	// pid's associated with all processes in the job
+	pid []int
 	// jid associated with this job
 	jid int
 	// command that created this job
 	command string
 	// process references to the running process
-	process *os.Process
+	processes map[int]*os.Process
 }
