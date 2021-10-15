@@ -9,7 +9,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -22,7 +21,8 @@ func main() {
 	var err error
 	currDir, err = os.Getwd()
 	if err != nil {
-		panic(errors.Wrap(err, "quash: WHERE AM I?!"))
+		quashError("couldn't pwd, defaulting to /:", err.Error())
+		currDir = "/"
 	}
 
 	// Ignore SIGINT
@@ -79,13 +79,20 @@ func executeInput(input string) {
 	isBackground := false
 	jid := nextJobID
 	newJob := job{jid: jid, command: input, processes: make(map[int]*os.Process)}
+
+	// Bad ampersand usage
+	if ampCount > 1 {
+		// idk error? its valid for shell commands, but way out of
+		// the scope of this project to have & as anything but a foreground/background indicator
+		quashError("bad number of ampersands")
+		return
+	}
+	// We have to send a job to background
 	if ampCount == 1 {
 		isBackground = true
 		nextJobID++
-		input = strings.TrimSpace(strings.Replace(input, "&", "", 1)) //should probably check that the amp is at the very end?
-	} else if ampCount > 1 {
-		panic("bad number of ampersands")
-		//idk error? its valid for shell commands, but way out of the scope of this project to have & as anything but a foreground/background indicator
+		//should probably check that the amp is at the very end?
+		input = strings.TrimSpace(strings.Replace(input, "&", "", 1))
 	}
 
 	// split input into different commands to be executed
@@ -153,7 +160,8 @@ func executeInput(input string) {
 				Sys: &syscall.SysProcAttr{},
 			})
 		if err != nil {
-			panic(err)
+			quashError("failed to fork: ", err.Error())
+			return
 		}
 
 		// close pipes that have been used to prevent stalling
