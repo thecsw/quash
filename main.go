@@ -98,6 +98,12 @@ func executeInput(input string) {
 			return
 		}
 
+		// see if & present, signifies if program runs in background
+		isBackground := strings.Contains(command, "&")
+		if isBackground {
+			command = strings.TrimSpace(strings.Replace(command, "&", "", 1))
+		}
+
 		//seperate command into its executable name and arguments
 		args := strings.Split(command, " ")
 		cmdName := args[0]
@@ -110,12 +116,7 @@ func executeInput(input string) {
 
 		jid := nextJobID
 		newJob := job{jid: jid, command: command}
-
-		// see if & present, signifies if program runs in background
-		isBackground := strings.Contains(command, "&")
 		if isBackground {
-			// remove the & from args
-			args = args[:len(args)-1]
 			nextJobID++
 		}
 
