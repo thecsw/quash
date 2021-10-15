@@ -14,6 +14,12 @@ import (
 
 var (
 	isTerminal = terminal.IsTerminal(int(os.Stdin.Fd()))
+	// currJob is the pid of the current foreground job
+	currJob = int(0)
+	// sigintChan listens to SIGINT and signals currJob
+	sigintChan = make(chan os.Signal, 1)
+	// sigints is a slice of signals corresponding to Ctrl-C
+	sigints = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGINT}
 )
 
 func main() {
@@ -26,7 +32,9 @@ func main() {
 	}
 
 	// Ignore SIGINT
-	signal.Ignore(os.Interrupt)
+	signal.Ignore(sigints...)
+	signal.Notify(sigintChan, sigints...)
+	go jobStopper()
 
 	// Our reader buffers the input
 	reader := bufio.NewReader(os.Stdin)
@@ -37,6 +45,9 @@ func main() {
 
 // runShell takes the user's shell input and runs that command
 func runShell(reader *bufio.Reader) {
+	// Update the current job
+	currJob = 0
+
 	// Greet the user if we are in the terminal
 	if isTerminal {
 		greet()
@@ -152,16 +163,20 @@ func executeInput(input string) {
 					stdoutDestination,
 					stderrDestination,
 				),
-				//Sys: &syscall.SysProcAttr{Foreground: !background},
-
 				// having trouble setting Foreground to true without program failing
 				// to terminate probably extra flags and such that need to be set,
 				// but dont know which
-				Sys: &syscall.SysProcAttr{},
+				Sys: &syscall.SysProcAttr{
+					// Setpgid allows us to ignore Ctrl-C in background processes
+					Setpgid: true,
+				},
 			})
 		if err != nil {
-			quashError("failed to fork: ", err.Error())
+			quashError("failed to fork: %s", err.Error())
 			return
+		}
+		if !isBackground {
+			currJob = pid
 		}
 
 		// close pipes that have been used to prevent stalling

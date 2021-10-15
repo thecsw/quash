@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 )
 
 const (
@@ -19,4 +20,16 @@ func greet() {
 		filepath.Base(currDir),
 		"λ",
 	)
+}
+
+// jobStopper waits for an interrupt to arrive and then
+// delivers it straight to the currently active job
+func jobStopper() {
+	for {
+		<-sigintChan
+		if currJob == 0 {
+			continue
+		}
+		syscall.Kill(currJob, syscall.SIGINT)
+	}
 }
