@@ -167,8 +167,8 @@ func executeInput(input string) {
 				// to terminate probably extra flags and such that need to be set,
 				// but dont know which
 				Sys: &syscall.SysProcAttr{
-					// Setpgid allows us to ignore Ctrl-C in background processes
-					Setpgid: true,
+					// Setsid allows us to ignore Ctrl-C in background processes
+					Setsid: true,
 				},
 			})
 		if err != nil {
