@@ -69,9 +69,10 @@ func takeInput(reader *bufio.Reader) string {
 				continue
 			}
 			// Clear the input first
-			resetTermInput(curPosition)
+			resetTermInput(len(input))
 			cmdNum = prevCmdNum(cmdNum)
 			input = printOldGoodCommand(cmdNum)
+			curPosition = len(input)
 			continue
 		}
 		// On arrow down press, clean out the terminal and replace with whatever
@@ -81,7 +82,7 @@ func takeInput(reader *bufio.Reader) string {
 			if len(goodHistory) < 1 {
 				continue
 			}
-			resetTermInput(curPosition)
+			resetTermInput(len(input))
 			// If at the end of history, just clear the input
 			if cmdNum >= len(goodHistory)-1 {
 				input = ""
@@ -90,6 +91,7 @@ func takeInput(reader *bufio.Reader) string {
 			// Get the later good command
 			cmdNum = nextCmdNum(cmdNum)
 			input = printOldGoodCommand(cmdNum)
+			curPosition = len(input)
 			continue
 		}
 		// Print the character that we swallowed up and append to input
