@@ -36,6 +36,9 @@ func main() {
 	signal.Notify(sigintChan, sigints...)
 	go jobStopper()
 
+	// Show a warm welcoming message
+	hello()
+
 	// Our reader buffers the input
 	reader := bufio.NewReader(os.Stdin)
 	for {

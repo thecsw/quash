@@ -11,6 +11,11 @@ const (
 	NEWLINE = "\n"
 )
 
+// hello is a small funny message to show to the user
+func hello() {
+	fmt.Fprintf(os.Stdout, "So you're back... about time...\n")
+}
+
 // greet prints the shell input line
 func greet() {
 	fmt.Fprintf(
