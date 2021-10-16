@@ -68,7 +68,7 @@ func killJob(args []string) {
 		return
 	}
 	// Try to send the signal to the job
-	if err := killed.processes[runningProcessPid[killed.jid]].Signal(syscall.Signal(sig)); err != nil {
+	if err := killed.process.Signal(syscall.Signal(sig)); err != nil {
 		quashError("Couldn't kill %d: %s", jobID, err.Error())
 		return
 	}
@@ -77,7 +77,7 @@ func killJob(args []string) {
 // showJobs shows all the jobs we have in the background and running
 func showJobs(args []string) {
 	for _, v := range jobList {
-		fmt.Printf("[%d] %d %s\n", v.jid, v.pid, v.command)
+		fmt.Printf("[%d] %d %s\n", v.jid, runningProcessPid[v.jid], v.command)
 	}
 }
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 )
 
@@ -11,6 +10,7 @@ var (
 	runningProcessPid = make(map[int]int)
 )
 
+/*
 // trackChild keeps track of jobs that run in the background
 // The main goal is printing when the process is created,
 // terminates, or is killed
@@ -40,17 +40,15 @@ func trackChild(jid int) {
 	delete(jobList, jid)
 	delete(runningProcessPid, jid)
 }
+*/
 
 // job is the struct that holds info about background processes
 type job struct {
-	// how many processes are part of the job
-	numProcesses int
-	// pid's associated with all processes in the job
-	pid []int
+	firstPid int
 	// jid associated with this job
 	jid int
 	// command that created this job
 	command string
-	// process references to the running process
-	processes map[int]*os.Process
+	// reference to the current process
+	process *os.Process
 }
