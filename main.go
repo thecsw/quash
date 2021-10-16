@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -14,6 +13,7 @@ import (
 )
 
 var (
+	// isTerminal is a flag that shows us if we are in tty
 	isTerminal = terminal.IsTerminal(int(os.Stdin.Fd()))
 	// currJob is the pid of the current foreground job
 	currJob = int(0)
@@ -21,6 +21,10 @@ var (
 	sigintChan = make(chan os.Signal, 1)
 	// sigints is a slice of signals corresponding to Ctrl-C
 	sigints = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGINT}
+	// goodHistory is a history of good past commands
+	goodHistory = []string{}
+	// greetLength is the number of bytes our greeting takes
+	greetLength int
 )
 
 func main() {
@@ -71,31 +75,13 @@ func runShell(reader *bufio.Reader) {
 	}
 
 	// Actually execute the user input
-	executeInput(expandEnv(takeInput(reader)))
-}
-
-// takeInput reads a newline-terminated input from a bufio reader
-func takeInput(reader *bufio.Reader) string {
-	input, err := reader.ReadString('\n')
-	if err != nil {
-		// If user clicked Ctrl-D, then exit
-		if err == io.EOF {
-			if isTerminal {
-				fmt.Fprint(os.Stdout, NEWLINE)
-			}
-			exit(nil)
-		}
-		// If something happened while reading, spit it out
-		quashError("%s", err.Error())
-		return NEWLINE
-	}
-	return input
+	executeInput(expandEnv(cleanInput(takeInput(reader))))
 }
 
 // executeInput takes an input string and runs (attempts) the commands in it.
 func executeInput(input string) {
 	// If user presses enter, then skip
-	if input == NEWLINE {
+	if input == NEWLINE || len(input) == 0 {
 		return
 	}
 
@@ -153,6 +139,7 @@ func executeInput(input string) {
 		// See if the command is a built-in shell command
 		if builtinFunc, ok := builtins[cmdName]; ok {
 			builtinFunc(args)
+			addToHistory(input)
 			return
 		}
 
@@ -215,4 +202,23 @@ func executeInput(input string) {
 	if isBackground {
 		go trackChild(jid)
 	}
+
+	addToHistory(input)
+}
+
+// addToHistory adds a successful command to the current history
+func addToHistory(what string) {
+	goodHistory = append(goodHistory, what)
+}
+
+// cleanInput cleans a string from null bytes
+func cleanInput(input string) string {
+	toReturn := ""
+	for _, c := range input {
+		if byte(c) == 0 {
+			continue
+		}
+		toReturn += string(c)
+	}
+	return toReturn
 }

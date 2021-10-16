@@ -11,12 +11,13 @@ import (
 
 var (
 	builtins = map[string]func(args []string){
-		"exit": exit,
-		"quit": exit,
-		"set":  setVariable,
-		"cd":   changeDirectory,
-		"kill": killJob,
-		"jobs": showJobs,
+		"exit":    exit,
+		"quit":    exit,
+		"set":     setVariable,
+		"cd":      changeDirectory,
+		"kill":    killJob,
+		"jobs":    showJobs,
+		"history": showHistory,
 	}
 )
 
@@ -77,6 +78,13 @@ func killJob(args []string) {
 func showJobs(args []string) {
 	for _, v := range jobList {
 		fmt.Printf("[%d] %d %s\n", v.jid, v.pid, v.command)
+	}
+}
+
+// showHistory shows the history of latest good commands executed
+func showHistory(args []string) {
+	for i := 0; i < len(goodHistory); i++ {
+		fmt.Fprintf(os.Stdout, "%d\t%s\n", i+1, goodHistory[i])
 	}
 }
 
