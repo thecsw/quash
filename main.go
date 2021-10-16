@@ -53,11 +53,8 @@ func runShell(reader *bufio.Reader) {
 		greet()
 	}
 
-	// Take the input line from the reader
-	input := takeInput(reader)
-
 	// Actually execute the user input
-	executeInput(input)
+	executeInput(expandEnv(takeInput(reader)))
 }
 
 // takeInput reads a newline-terminated input from a bufio reader
