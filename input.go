@@ -86,6 +86,7 @@ func takeInput(reader *bufio.Reader) string {
 			// If at the end of history, just clear the input
 			if cmdNum >= len(goodHistory)-1 {
 				input = ""
+				cmdNum = len(goodHistory)
 				continue
 			}
 			// Get the later good command
