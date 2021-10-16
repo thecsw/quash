@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -29,6 +30,15 @@ func main() {
 	if err != nil {
 		quashError("couldn't pwd, defaulting to /:", err.Error())
 		currDir = "/"
+	}
+
+	initFlags()
+	flag.Parse()
+
+	// Show version and exit
+	if flagVersion {
+		fmt.Fprintf(os.Stdout, "quash, version 9000")
+		return
 	}
 
 	// Ignore SIGINT
