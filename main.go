@@ -37,7 +37,7 @@ func main() {
 
 	// Show version and exit
 	if flagVersion {
-		fmt.Fprintf(os.Stdout, "quash, version 9000")
+		fmt.Fprintf(os.Stdout, "quash, version 9000\n")
 		return
 	}
 
