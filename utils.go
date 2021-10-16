@@ -21,7 +21,7 @@ func greet() {
 	fmt.Fprintf(
 		os.Stdout,
 		"\033[94m%s\033[0m:\033[96m%s\033[0m \033[93m%s\033[0m ",
-		"quash",
+		getenv("QUASH"),
 		filepath.Base(currDir),
 		"λ",
 	)

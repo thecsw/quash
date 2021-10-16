@@ -9,10 +9,11 @@ import (
 var (
 	// myEnv is the environment that we keep in quash
 	myEnv = os.Environ()
-
-	envVarRegex = regexp.MustCompile(`({\$([^\s]+)}|\$([^\s]+))`)
+	// envVarRegex matches environmental variable expansions
+	envVarRegex = regexp.MustCompile(`[^\\]({\$([^\s<>*%$#@]+)}|\$([^\s<>*%$#@]+))`)
 )
 
+// expandEnv will expand env vars by lookup in myEnv
 func expandEnv(input string) string {
 	anyFound := envVarRegex.MatchString(input)
 	// if no env vars are found, return the same thing

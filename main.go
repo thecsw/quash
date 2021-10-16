@@ -36,9 +36,11 @@ func main() {
 	signal.Notify(sigintChan, sigints...)
 	go jobStopper()
 
-	// Show a warm welcoming message
+	// Show a warm welcoming message and set shell line
 	if isTerminal {
 		hello()
+		// The shell's theme
+		setenv("QUASH", "quash")
 	}
 
 	// Our reader buffers the input
