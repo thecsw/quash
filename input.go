@@ -128,16 +128,16 @@ func resetTermInput(what int) {
 	// Wipe out the user input AND the greeting
 	// re-greet them later
 	//
-	// printN(what+greetLength, "\b")
-	// printN(what+greetLength, " ")
-	// printN(what+greetLength, "\b")
-	// greet()
+	printN(what+greetLength, "\b")
+	printN(what+greetLength, " ")
+	printN(what+greetLength, "\b")
+	greet()
 
 	// Only wipe out the user input
 	//
-	printN(what, "\b")
-	printN(what, " ")
-	printN(what, "\b")
+	//printN(what, "\b")
+	//printN(what, " ")
+	//printN(what, "\b")
 }
 
 // prevCmdNum gives last good command index

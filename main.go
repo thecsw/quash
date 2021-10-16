@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -108,6 +107,17 @@ func executeInput(input string) {
 	commands := strings.Split(input, "|")
 	for index, command := range commands {
 		commands[index] = strings.TrimSpace(command)
+		args := strings.Split(command, " ")
+		args[0] = strings.TrimSpace(args[0])
+		if builtinFunc, ok := builtins[args[0]]; ok && len(commands) == 1 {
+			builtinFunc(args)
+			addToHistory(input)
+			return
+		} else if ok {
+			quashError("built-in command inside pipe chain")
+			return
+		}
+
 	}
 
 	pipeRead, pipeWrite := createPipes(len(commands) - 1)
@@ -116,11 +126,8 @@ func executeInput(input string) {
 	for index, command := range commands {
 		pid, err := executeCommand(command, index, pipeRead, pipeWrite)
 		if err != nil {
-			if errors.Is(err, errors.New("built-in function")) {
-				continue
-			} else {
-				return
-			}
+			quashError("failed to execute command: %s", err.Error())
+			return
 		}
 		currJob = pid
 
@@ -145,26 +152,20 @@ func executeCommand(command string, index int, pipeRead []*os.File, pipeWrite []
 		&stderrDestination,
 	)
 	if err != nil {
-		quashError("redirect failed", err)
-		return -1, errors.New("execution failed")
+		//quashError("redirect failed", err)
+		//return -1, fmt.Errorf("redirect failed: %w", err)
+		return -1, err
 	}
 
 	//seperate command into its executable name and arguments
 	args := strings.Split(command, " ")
 	cmdName := args[0]
 
-	// See if the command is a built-in shell command
-	if builtinFunc, ok := builtins[cmdName]; ok {
-		builtinFunc(args)
-		addToHistory(input)
-		return -1, errors.New("built-in function")
-	}
-
 	// find path to executable
 	paths, err := lookPath(cmdName)
 	if err != nil {
-		quashError("%s : %s", err, cmdName)
-		return -1, errors.New("execution failed")
+		//quashError("%s : %s", err, cmdName)
+		return -1, err
 	}
 
 	// make actual fork happen
@@ -190,8 +191,8 @@ func executeCommand(command string, index int, pipeRead []*os.File, pipeWrite []
 			},
 		})
 	if err != nil {
-		quashError("failed to fork: %s", err.Error())
-		return -1, errors.New("execution failed")
+		//quashError("failed to fork: %s", err.Error())
+		return -1, err
 	}
 	return pid, nil
 }
@@ -207,68 +208,25 @@ func backgroundExecution(input string) {
 	commands := strings.Split(input, "|")
 	for index, command := range commands {
 		commands[index] = strings.TrimSpace(command)
+		args := strings.Split(command, " ")
+		args[0] = strings.TrimSpace(args[0])
+		if builtinFunc, ok := builtins[args[0]]; ok && len(commands) == 1 {
+			builtinFunc(args)
+			addToHistory(input)
+			return
+		} else if ok {
+			quashError("built-in command inside pipe chain")
+			return
+		}
 	}
 
 	pipeRead, pipeWrite := createPipes(len(commands) - 1)
 
 	// fork and execute each command as its own process
 	for index, command := range commands {
-		var err error
-		// Find all of our destinations
-		stdinDestination := os.Stdin
-		stdoutDestination := os.Stdout
-		stderrDestination := os.Stderr
-		command, err = setReridects(command,
-			&stdinDestination,
-			&stdoutDestination,
-			&stderrDestination,
-		)
+		pid, err := executeCommand(command, index, pipeRead, pipeWrite)
 		if err != nil {
-			quashError("redirect failed", err)
-			return
-		}
-
-		//seperate command into its executable name and arguments
-		args := strings.Split(command, " ")
-		cmdName := args[0]
-
-		// See if the command is a built-in shell command
-		if builtinFunc, ok := builtins[cmdName]; ok {
-			builtinFunc(args)
-			return
-		}
-
-		// find path to executable
-		paths, err := lookPath(cmdName)
-		if err != nil {
-			quashError("%s : %s", err, cmdName)
-			return
-		}
-
-		// make actual fork happen
-		pid, err := syscall.ForkExec(
-			//_, err := syscall.ForkExec(
-			paths, args, &syscall.ProcAttr{
-				Dir: currDir,
-				Env: myEnv,
-				Files: fileDescriptor(
-					index,
-					pipeRead,
-					pipeWrite,
-					stdinDestination,
-					stdoutDestination,
-					stderrDestination,
-				),
-				// having trouble setting Foreground to true without program failing
-				// to terminate probably extra flags and such that need to be set,
-				// but dont know which
-				Sys: &syscall.SysProcAttr{
-					// Setsid allows us to ignore Ctrl-C in background processes
-					Setsid: true,
-				},
-			})
-		if err != nil {
-			quashError("failed to fork: %s", err.Error())
+			quashError("failed to execute command: %s", err.Error())
 			return
 		}
 
