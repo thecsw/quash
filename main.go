@@ -37,7 +37,9 @@ func main() {
 	go jobStopper()
 
 	// Show a warm welcoming message
-	hello()
+	if isTerminal {
+		hello()
+	}
 
 	// Our reader buffers the input
 	reader := bufio.NewReader(os.Stdin)
