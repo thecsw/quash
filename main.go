@@ -55,6 +55,7 @@ func main() {
 		hello()
 		// The shell's theme
 		setenv("QUASH", "quash")
+		setenv("TERM", "xterm")
 	}
 
 	// Our reader buffers the input
@@ -81,7 +82,7 @@ func runShell(reader *bufio.Reader) {
 // executeInput takes an input string and runs (attempts) the commands in it.
 func executeInput(input string) {
 	// If user presses enter, then skip
-	if input == NEWLINE {
+	if input == NEWLINE || len(input) < 1 {
 		return
 	}
 
