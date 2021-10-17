@@ -77,7 +77,7 @@ func killJob(args []string) {
 // showJobs shows all the jobs we have in the background and running
 func showJobs(args []string) {
 	for _, v := range jobList {
-		fmt.Printf("[%d] %d %s\n", v.jid, runningProcessPid[v.jid], v.command)
+		fmt.Printf("[%d] %d %s\n", v.jid, v.pid, v.command)
 	}
 }
 

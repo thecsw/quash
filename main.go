@@ -108,7 +108,7 @@ func executeInput(input string) {
 	commands := strings.Split(input, "|")
 	for index, command := range commands {
 		commands[index] = strings.TrimSpace(command)
-		args := strings.Split(command, " ")
+		args := strings.Split(commands[index], " ")
 		args[0] = strings.TrimSpace(args[0])
 		if builtinFunc, ok := builtins[args[0]]; ok && len(commands) == 1 {
 			builtinFunc(args)
@@ -209,7 +209,7 @@ func backgroundExecution(input string) {
 	commands := strings.Split(input, "|")
 	for index, command := range commands {
 		commands[index] = strings.TrimSpace(command)
-		args := strings.Split(command, " ")
+		args := strings.Split(commands[index], " ")
 		args[0] = strings.TrimSpace(args[0])
 		if builtinFunc, ok := builtins[args[0]]; ok && len(commands) == 1 {
 			builtinFunc(args)
@@ -236,11 +236,10 @@ func backgroundExecution(input string) {
 
 		process, _ := os.FindProcess(pid)
 		newJob.process = process
-
+		newJob.pid = pid
+		jobList[jid] = newJob
 		if index == 0 {
-			newJob.firstPid = pid
-			jobList[jid] = newJob
-			runningProcessPid[jid] = pid
+			//runningProcessPid[jid] = pid
 			fmt.Printf("[%d] %d running in background\n", jid, pid)
 		}
 
@@ -249,17 +248,17 @@ func backgroundExecution(input string) {
 			panic(err)
 		} else if state.ExitCode() == -1 {
 			fmt.Printf("[%d] %d killed by error or signal",
-				jobList[jid].jid, runningProcessPid[jid])
+				jobList[jid].jid, jobList[jid].pid)
 			delete(jobList, jid)
-			delete(runningProcessPid, jid)
+			//delete(runningProcessPid, jid)
 			return
 		}
 	}
 	fmt.Printf("[%d] %d finished %s\n",
-		jobList[jid].jid, runningProcessPid[jid],
+		jobList[jid].jid, jobList[jid].pid,
 		jobList[jid].command)
 	delete(jobList, jid)
-	delete(runningProcessPid, jid)
+	//delete(runningProcessPid, jid)
 }
 
 // addToHistory adds a successful command to the current history

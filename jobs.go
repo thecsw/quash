@@ -5,9 +5,9 @@ import (
 )
 
 var (
-	nextJobID         = 1
-	jobList           = make(map[int]job)
-	runningProcessPid = make(map[int]int)
+	nextJobID = 1
+	jobList   = make(map[int]job)
+	//runningProcessPid = make(map[int]int)
 )
 
 /*
@@ -44,7 +44,7 @@ func trackChild(jid int) {
 
 // job is the struct that holds info about background processes
 type job struct {
-	firstPid int
+	pid int
 	// jid associated with this job
 	jid int
 	// command that created this job
