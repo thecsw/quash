@@ -15,9 +15,7 @@ import (
 var (
 	// isTerminal is a flag that shows us if we are in tty
 	isTerminal = terminal.IsTerminal(int(os.Stdin.Fd()))
-	// currJob is the pid of the current foreground job
-	currJob = int(0)
-	// sigintChan listens to SIGINT and signals currJob
+	// sigintChan listens to SIGINT and signals the current bg job to die
 	sigintChan = make(chan os.Signal, 1)
 	// sigints is a slice of signals corresponding to Ctrl-C
 	sigints = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGINT}
@@ -46,7 +44,7 @@ func main() {
 	}
 
 	// Ignore SIGINT
-	signal.Ignore(sigints...)
+	//signal.Ignore(sigints...)
 	signal.Notify(sigintChan, sigints...)
 	go jobStopper()
 
@@ -67,9 +65,6 @@ func main() {
 
 // runShell takes the user's shell input and runs that command
 func runShell(reader *bufio.Reader) {
-	// Update the current job
-	currJob = 0
-
 	// Greet the user if we are in the terminal
 	if isTerminal {
 		greet()
@@ -127,10 +122,9 @@ func executeInput(input string) {
 	for index, command := range commands {
 		pid, err := executeCommand(command, index, pipeRead, pipeWrite)
 		if err != nil {
-			quashError("failed to execute command: %s", err.Error())
+			quashError("failed to execute command (%s): %s", command, err.Error())
 			return
 		}
-		currJob = pid
 
 		// close pipes that have been used to prevent stalling
 		closePipe(index, pipeRead, pipeWrite)
