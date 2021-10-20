@@ -88,5 +88,99 @@
   =PATH = /usr/bin= and executable is =echo=, =lookPath= would return
   =/usr/bin/echo=). =getenv= and =setenv= are our user-defined functions that access
   the global variable =myEnv=, which holds all of our active environmental variables.
-* Background processes
-  
+* Pipes
+  Quash allows the user to sequentially run multiple programs while passing the
+  output data from one program to the input data of the next program in the
+  sequence. This is accomplished with the use of pipes. When Quash receives a
+  command, it separates the command into the programs the command wants us to
+  run and creates pipes to connect the processes to be created.
+  #+begin_src go
+    // split input into different commands to be executed
+    commands := strings.Split(input, "|")
+    for index, command := range commands {
+            commands[index] = strings.TrimSpace(command)
+            args := strings.Split(commands[index], " ")
+            args[0] = strings.TrimSpace(args[0])
+            if builtinFunc, ok := builtins[args[0]]; ok && len(commands) == 1 {
+                    builtinFunc(args)
+                    addToHistory(input)
+                    return
+            } else if ok {
+                    quashError("built-in command inside pipe chain")
+                    return
+            }
+    }
+    
+    pipeRead, pipeWrite := createPipes(len(commands) - 1)
+    
+  #+end_src
+  While the processes are being created (see Forking and Executing), the
+  processes are assigned a custom file descriptor table created using the
+  =fileDescriptor()= function. If there are pipes present in the command, then
+  =fileDescriptor()= will use the created pipes as files in the descriptor table,
+  overwriting the default behavior that uses the operating system’s standard
+  input (=stdin=) and standard output (=stdout=).
+  #+begin_src go
+    // fileDescriptor returns a custom file descriptor for a call to ForkExec
+    // if there is only one command with no pipes, Stdin Stdout and Stderr are used
+    // pipes overwrite read, write, or both for processes inside of a pipe chain.
+    func fileDescriptor(
+            index int,
+            readPipe []*os.File,
+            writePipe []*os.File,
+            in *os.File,
+            out *os.File,
+            err *os.File,
+    ) []uintptr {
+            // One command, so no pipes
+            if len(readPipe) == 0 {
+                    return []uintptr{
+                            in.Fd(),
+                            out.Fd(),
+                            err.Fd(),
+                    }
+            }
+            // first in a chain
+            if index == 0 {
+                    return []uintptr{
+                            in.Fd(),
+                            writePipe[0].Fd(),
+                            err.Fd(),
+                    }
+            }
+            // last in a chain
+            if index == len(readPipe) { ... }
+            // middle of a chain
+            return []uintptr{ ... }
+    }
+  #+end_src
+  Finally, we must close the pipes within the quash process in order to properly
+  transmit EOF when a child process finishes execution. This is done using the
+  =closePipe()= function, which closes the pipe ends that we distributed to the
+  child process using the =fileDescriptor()= function.
+  #+begin_src go
+    // closePipe closes used pipe ends based on where they are in a chain of piped
+    // commands if only one command exists, there are no pipes and this function
+    // does nothing.
+    func closePipe(index int, readPipe []*os.File, writePipe []*os.File) {
+            // One command, so no pipes
+            if len(readPipe) == 0 {
+            } else if index == 0 {
+                    // first in a chain
+                    writePipe[0].Close()
+            } else if index == len(readPipe) {
+                    // last in a chain
+                    readPipe[index-1].Close()
+            } else {
+                    // middle of a chain
+                    readPipe[index-1].Close()
+                    writePipe[index].Close()
+            }
+    }
+  #+end_src
+  Note that in C you would have to also close excess pipes between the fork and
+  execute function calls in the child process, but in Go we only assigned the
+  child process the necessary pipes, so no additional pipes need to be closed. 
+* Background Processes
+* Builtins
+* Arrow Keys

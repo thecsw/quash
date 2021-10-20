@@ -1,0 +1,20 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{c+c1}{// closePipe closes used pipe ends based on where they are in a chain of piped}
+\PYG{c+c1}{// commands if only one command exists, there are no pipes and this function}
+\PYG{c+c1}{// does nothing.}
+\PYG{k+kd}{func} \PYG{n+nx}{closePipe}\PYG{p}{(}\PYG{n+nx}{index} \PYG{k+kt}{int}\PYG{p}{,} \PYG{n+nx}{readPipe} \PYG{p}{[]}\PYG{o}{*}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{File}\PYG{p}{,} \PYG{n+nx}{writePipe} \PYG{p}{[]}\PYG{o}{*}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{File}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+        \PYG{c+c1}{// One command, so no pipes}
+        \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{readPipe}\PYG{p}{)} \PYG{o}{==} \PYG{l+m+mi}{0} \PYG{p}{\PYGZob{}}
+        \PYG{p}{\PYGZcb{}} \PYG{k}{else} \PYG{k}{if} \PYG{n+nx}{index} \PYG{o}{==} \PYG{l+m+mi}{0} \PYG{p}{\PYGZob{}}
+                \PYG{c+c1}{// first in a chain}
+                \PYG{n+nx}{writePipe}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{].}\PYG{n+nx}{Close}\PYG{p}{()}
+        \PYG{p}{\PYGZcb{}} \PYG{k}{else} \PYG{k}{if} \PYG{n+nx}{index} \PYG{o}{==} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{readPipe}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+                \PYG{c+c1}{// last in a chain}
+                \PYG{n+nx}{readPipe}\PYG{p}{[}\PYG{n+nx}{index}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1}\PYG{p}{].}\PYG{n+nx}{Close}\PYG{p}{()}
+        \PYG{p}{\PYGZcb{}} \PYG{k}{else} \PYG{p}{\PYGZob{}}
+                \PYG{c+c1}{// middle of a chain}
+                \PYG{n+nx}{readPipe}\PYG{p}{[}\PYG{n+nx}{index}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1}\PYG{p}{].}\PYG{n+nx}{Close}\PYG{p}{()}
+                \PYG{n+nx}{writePipe}\PYG{p}{[}\PYG{n+nx}{index}\PYG{p}{].}\PYG{n+nx}{Close}\PYG{p}{()}
+        \PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}

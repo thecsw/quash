@@ -1,4 +1,4 @@
-% Created 2021-10-13 Wed 23:32
+% Created 2021-10-20 Wed 14:09
 % Intended LaTeX compiler: xelatex
 \documentclass[12pt]{article}
 \usepackage{graphicx}
@@ -86,11 +86,11 @@
 \tableofcontents
 
 \section{Quash}
-\label{sec:org40bb55e}
+\label{sec:org8e17f0a}
 Quash is the best shell in the entirety of our existence. Let's walk through
 how it's built!
 \section{Forking and Executing}
-\label{sec:org78c6a9a}
+\label{sec:org37b2698}
 Quash is implemented in \href{https://golang.org}{Go}, which itself is a garbage-collected language that
 runs threads to maintain the language runtime. When we want to fork from a Go
 application, the forking will only spawn a copy of the thread that initiated
@@ -116,7 +116,7 @@ current active directory where we are located, \texttt{Env} is a slice of string
 contains our environmental variables, \texttt{Files} is a slice of unsigned file
 descriptor pointer values, and \texttt{Sys} is a struct to pass additional options.
 \section{\texttt{PATH}}
-\label{sec:org0aed56f}
+\label{sec:orgc4d50d9}
 In order to run executables, we have to have a list of directors where we
 would look for one. For this, we have our \texttt{PATH} environmental variable. Quash
 solves this problem rather simply by going through all the directories in \texttt{PATH}
@@ -164,6 +164,104 @@ Notice that the function would return the full path for a binary (example if
 \texttt{PATH = /usr/bin} and executable is \texttt{echo}, \texttt{lookPath} would return
 \texttt{/usr/bin/echo}). \texttt{getenv} and \texttt{setenv} are our user-defined functions that access
 the global variable \texttt{myEnv}, which holds all of our active environmental variables.
-\section{Background processes}
-\label{sec:org5570b4c}
+\section{Pipes}
+\label{sec:orgd8e09c2}
+Quash allows the user to sequentially run multiple programs while passing the
+output data from one program to the input data of the next program in the
+sequence. This is accomplished with the use of pipes. When Quash receives a
+command, it separates the command into the programs the command wants us to
+run and creates pipes to connect the processes to be created.
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{go}
+// split input into different commands to be executed
+commands := strings.Split(input, "|")
+for index, command := range commands {
+        commands[index] = strings.TrimSpace(command)
+        args := strings.Split(commands[index], " ")
+        args[0] = strings.TrimSpace(args[0])
+        if builtinFunc, ok := builtins[args[0]]; ok && len(commands) == 1 {
+                builtinFunc(args)
+                addToHistory(input)
+                return
+        } else if ok {
+                quashError("built-in command inside pipe chain")
+                return
+        }
+}
+
+pipeRead, pipeWrite := createPipes(len(commands) - 1)
+
+\end{minted}
+While the processes are being created (see Forking and Executing), the
+processes are assigned a custom file descriptor table created using the
+\texttt{fileDescriptor()} function. If there are pipes present in the command, then
+\texttt{fileDescriptor()} will use the created pipes as files in the descriptor table,
+overwriting the default behavior that uses the operating system’s standard
+input (\texttt{stdin}) and standard output (\texttt{stdout}).
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{go}
+// fileDescriptor returns a custom file descriptor for a call to ForkExec
+// if there is only one command with no pipes, Stdin Stdout and Stderr are used
+// pipes overwrite read, write, or both for processes inside of a pipe chain.
+func fileDescriptor(
+        index int,
+        readPipe []*os.File,
+        writePipe []*os.File,
+        in *os.File,
+        out *os.File,
+        err *os.File,
+) []uintptr {
+        // One command, so no pipes
+        if len(readPipe) == 0 {
+                return []uintptr{
+                        in.Fd(),
+                        out.Fd(),
+                        err.Fd(),
+                }
+        }
+        // first in a chain
+        if index == 0 {
+                return []uintptr{
+                        in.Fd(),
+                        writePipe[0].Fd(),
+                        err.Fd(),
+                }
+        }
+        // last in a chain
+        if index == len(readPipe) { ... }
+        // middle of a chain
+        return []uintptr{ ... }
+}
+\end{minted}
+Finally, we must close the pipes within the quash process in order to properly
+transmit EOF when a child process finishes execution. This is done using the
+\texttt{closePipe()} function, which closes the pipe ends that we distributed to the
+child process using the \texttt{fileDescriptor()} function.
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{go}
+// closePipe closes used pipe ends based on where they are in a chain of piped
+// commands if only one command exists, there are no pipes and this function
+// does nothing.
+func closePipe(index int, readPipe []*os.File, writePipe []*os.File) {
+        // One command, so no pipes
+        if len(readPipe) == 0 {
+        } else if index == 0 {
+                // first in a chain
+                writePipe[0].Close()
+        } else if index == len(readPipe) {
+                // last in a chain
+                readPipe[index-1].Close()
+        } else {
+                // middle of a chain
+                readPipe[index-1].Close()
+                writePipe[index].Close()
+        }
+}
+\end{minted}
+Note that in C you would have to also close excess pipes between the fork and
+execute function calls in the child process, but in Go we only assigned the
+child process the necessary pipes, so no additional pipes need to be closed. 
+\section{Background Processes}
+\label{sec:org72eea1a}
+\section{Builtins}
+\label{sec:org6c0805b}
+\section{Arrow Keys}
+\label{sec:orgc600fcc}
 \end{document}

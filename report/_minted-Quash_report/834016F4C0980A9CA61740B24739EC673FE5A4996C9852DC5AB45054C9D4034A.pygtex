@@ -1,0 +1,19 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{c+c1}{// split input into different commands to be executed}
+\PYG{n+nx}{commands} \PYG{o}{:=} \PYG{n+nx}{strings}\PYG{p}{.}\PYG{n+nx}{Split}\PYG{p}{(}\PYG{n+nx}{input}\PYG{p}{,} \PYG{l+s}{\PYGZdq{}|\PYGZdq{}}\PYG{p}{)}
+\PYG{k}{for} \PYG{n+nx}{index}\PYG{p}{,} \PYG{n+nx}{command} \PYG{o}{:=} \PYG{k}{range} \PYG{n+nx}{commands} \PYG{p}{\PYGZob{}}
+        \PYG{n+nx}{commands}\PYG{p}{[}\PYG{n+nx}{index}\PYG{p}{]} \PYG{p}{=} \PYG{n+nx}{strings}\PYG{p}{.}\PYG{n+nx}{TrimSpace}\PYG{p}{(}\PYG{n+nx}{command}\PYG{p}{)}
+        \PYG{n+nx}{args} \PYG{o}{:=} \PYG{n+nx}{strings}\PYG{p}{.}\PYG{n+nx}{Split}\PYG{p}{(}\PYG{n+nx}{commands}\PYG{p}{[}\PYG{n+nx}{index}\PYG{p}{],} \PYG{l+s}{\PYGZdq{} \PYGZdq{}}\PYG{p}{)}
+        \PYG{n+nx}{args}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]} \PYG{p}{=} \PYG{n+nx}{strings}\PYG{p}{.}\PYG{n+nx}{TrimSpace}\PYG{p}{(}\PYG{n+nx}{args}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{])}
+        \PYG{k}{if} \PYG{n+nx}{builtinFunc}\PYG{p}{,} \PYG{n+nx}{ok} \PYG{o}{:=} \PYG{n+nx}{builtins}\PYG{p}{[}\PYG{n+nx}{args}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{]];} \PYG{n+nx}{ok} \PYG{o}{\PYGZam{}\PYGZam{}} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{commands}\PYG{p}{)} \PYG{o}{==} \PYG{l+m+mi}{1} \PYG{p}{\PYGZob{}}
+                \PYG{n+nx}{builtinFunc}\PYG{p}{(}\PYG{n+nx}{args}\PYG{p}{)}
+                \PYG{n+nx}{addToHistory}\PYG{p}{(}\PYG{n+nx}{input}\PYG{p}{)}
+                \PYG{k}{return}
+        \PYG{p}{\PYGZcb{}} \PYG{k}{else} \PYG{k}{if} \PYG{n+nx}{ok} \PYG{p}{\PYGZob{}}
+                \PYG{n+nx}{quashError}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}built\PYGZhy{}in command inside pipe chain\PYGZdq{}}\PYG{p}{)}
+                \PYG{k}{return}
+        \PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{n+nx}{pipeRead}\PYG{p}{,} \PYG{n+nx}{pipeWrite} \PYG{o}{:=} \PYG{n+nx}{createPipes}\PYG{p}{(}\PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{commands}\PYG{p}{)} \PYG{o}{\PYGZhy{}} \PYG{l+m+mi}{1}\PYG{p}{)}
+\end{Verbatim}

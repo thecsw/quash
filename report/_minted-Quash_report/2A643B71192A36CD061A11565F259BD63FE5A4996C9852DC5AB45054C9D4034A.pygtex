@@ -1,0 +1,34 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{c+c1}{// fileDescriptor returns a custom file descriptor for a call to ForkExec}
+\PYG{c+c1}{// if there is only one command with no pipes, Stdin Stdout and Stderr are used}
+\PYG{c+c1}{// pipes overwrite read, write, or both for processes inside of a pipe chain.}
+\PYG{k+kd}{func} \PYG{n+nx}{fileDescriptor}\PYG{p}{(}
+        \PYG{n+nx}{index} \PYG{k+kt}{int}\PYG{p}{,}
+        \PYG{n+nx}{readPipe} \PYG{p}{[]}\PYG{o}{*}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{File}\PYG{p}{,}
+        \PYG{n+nx}{writePipe} \PYG{p}{[]}\PYG{o}{*}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{File}\PYG{p}{,}
+        \PYG{n+nx}{in} \PYG{o}{*}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{File}\PYG{p}{,}
+        \PYG{n+nx}{out} \PYG{o}{*}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{File}\PYG{p}{,}
+        \PYG{n+nx}{err} \PYG{o}{*}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{File}\PYG{p}{,}
+\PYG{p}{)} \PYG{p}{[]}\PYG{k+kt}{uintptr} \PYG{p}{\PYGZob{}}
+        \PYG{c+c1}{// One command, so no pipes}
+        \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{readPipe}\PYG{p}{)} \PYG{o}{==} \PYG{l+m+mi}{0} \PYG{p}{\PYGZob{}}
+                \PYG{k}{return} \PYG{p}{[]}\PYG{k+kt}{uintptr}\PYG{p}{\PYGZob{}}
+                        \PYG{n+nx}{in}\PYG{p}{.}\PYG{n+nx}{Fd}\PYG{p}{(),}
+                        \PYG{n+nx}{out}\PYG{p}{.}\PYG{n+nx}{Fd}\PYG{p}{(),}
+                        \PYG{n+nx}{err}\PYG{p}{.}\PYG{n+nx}{Fd}\PYG{p}{(),}
+                \PYG{p}{\PYGZcb{}}
+        \PYG{p}{\PYGZcb{}}
+        \PYG{c+c1}{// first in a chain}
+        \PYG{k}{if} \PYG{n+nx}{index} \PYG{o}{==} \PYG{l+m+mi}{0} \PYG{p}{\PYGZob{}}
+                \PYG{k}{return} \PYG{p}{[]}\PYG{k+kt}{uintptr}\PYG{p}{\PYGZob{}}
+                        \PYG{n+nx}{in}\PYG{p}{.}\PYG{n+nx}{Fd}\PYG{p}{(),}
+                        \PYG{n+nx}{writePipe}\PYG{p}{[}\PYG{l+m+mi}{0}\PYG{p}{].}\PYG{n+nx}{Fd}\PYG{p}{(),}
+                        \PYG{n+nx}{err}\PYG{p}{.}\PYG{n+nx}{Fd}\PYG{p}{(),}
+                \PYG{p}{\PYGZcb{}}
+        \PYG{p}{\PYGZcb{}}
+        \PYG{c+c1}{// last in a chain}
+        \PYG{k}{if} \PYG{n+nx}{index} \PYG{o}{==} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{readPipe}\PYG{p}{)} \PYG{p}{\PYGZob{}} \PYG{o}{...} \PYG{p}{\PYGZcb{}}
+        \PYG{c+c1}{// middle of a chain}
+        \PYG{k}{return} \PYG{p}{[]}\PYG{k+kt}{uintptr}\PYG{p}{\PYGZob{}} \PYG{o}{...} \PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}
