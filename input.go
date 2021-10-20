@@ -95,6 +95,10 @@ func takeInput(reader *bufio.Reader) string {
 			curPosition = len(input)
 			continue
 		}
+		// Ignore left and right arrow keys
+		if key == keyboard.KeyArrowLeft || key == keyboard.KeyArrowRight {
+			continue
+		}
 		// Print the character that we swallowed up and append to input
 		fmt.Fprint(os.Stdout, string(readCharacter))
 		input += string(readCharacter)
