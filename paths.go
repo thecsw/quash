@@ -19,8 +19,8 @@ func lookPath(name string) (string, error) {
 	if filepath.IsAbs(name) { //if the user has absolute path then we good
 		return name, nil
 	}
-	// see if the executable name has "./" in it
-	if strings.Contains(name, "./") {
+	// see if the executable name has "./" or "../" in it
+	if strings.Contains(name, "./") || strings.Contains(name, "../") {
 		absPath := filepath.Join(currDir, name)
 		_, err := os.Stat(absPath)
 		if !os.IsNotExist(err) {
