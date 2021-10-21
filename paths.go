@@ -19,11 +19,13 @@ func lookPath(name string) (string, error) {
 	if filepath.IsAbs(name) { //if the user has absolute path then we good
 		return name, nil
 	}
-
-	absPath := filepath.Join(currDir, name)
-	_, err := os.Stat(absPath)
-	if !os.IsNotExist(err) {
-		return absPath, nil
+	// see if the executable name has "./" in it
+	if strings.Contains(name, "./") {
+		absPath := filepath.Join(currDir, name)
+		_, err := os.Stat(absPath)
+		if !os.IsNotExist(err) {
+			return absPath, nil
+		}
 	}
 	path := getenv("PATH")
 	if path == "" {
@@ -43,7 +45,6 @@ func lookPath(name string) (string, error) {
 			}
 		}
 	}
-	err = errors.New("executable not found")
+	err := errors.New("executable not found")
 	return "", err
-
 }
