@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"syscall"
@@ -143,21 +144,25 @@ func takeInput(reader *bufio.Reader) string {
 		input += string(readCharacter)
 		curPosition = len(input)
 	}
+}
 
-	// input, err := reader.ReadString('\n')
-	// if err != nil {
-	// 	// If user clicked Ctrl-D, then exit
-	// 	if err == io.EOF {
-	// 		if isTerminal {
-	// 			fmt.Fprint(os.Stdout, NEWLINE)
-	// 		}
-	// 		exit(nil)
-	// 	}
-	// 	// If something happened while reading, spit it out
-	// 	quashError("%s", err.Error())
-	// 	return NEWLINE
-	// }
-	// return input
+// takeDullInput takes input from reader but with no cool arrow moves
+func takeDullInput(reader *bufio.Reader) string {
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		// If user clicked Ctrl-D, then exit
+		if err == io.EOF {
+			if isTerminal {
+				fmt.Fprint(os.Stdout, NEWLINE)
+			}
+			exit(nil)
+		}
+		// If something happened while reading, spit it out
+		quashError("%s", err.Error())
+		return NEWLINE
+	}
+	return input
+
 }
 
 // printOldGoodCommand prints the old good command and returns it

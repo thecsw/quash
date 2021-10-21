@@ -71,7 +71,7 @@ func runShell(reader *bufio.Reader) {
 	}
 
 	// Actually execute the user input
-	executeInput(expandEnv(cleanInput(takeInput(reader))))
+	executeInput(expandEnv(cleanInput(inputTaker()(reader))))
 }
 
 // executeInput takes an input string and runs (attempts) the commands in it.
@@ -270,4 +270,13 @@ func cleanInput(input string) string {
 		toReturn += string(c)
 	}
 	return toReturn
+}
+
+// inputTaker returns a good input command to use whether
+// we are in terminal or not
+func inputTaker() func(*bufio.Reader) string {
+	if isTerminal {
+		return takeInput
+	}
+	return takeDullInput
 }
