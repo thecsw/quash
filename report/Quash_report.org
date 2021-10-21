@@ -182,5 +182,90 @@
   execute function calls in the child process, but in Go we only assigned the
   child process the necessary pipes, so no additional pipes need to be closed. 
 * Background Processes
+  Like many other shell programs, Quash has the ability to execute programs in
+  either the foreground or the background. A program or group of programs
+  running in the background is called a job. A program is designated to run in
+  the background as a job by adding the & character to the end of the command. A
+  set of programs linked by pipes can also be run in the background the same
+  way, using a single & at the very end. For example, =ls &= and =ls | wc &= both
+  create jobs that will execute in the background.
+  #+begin_src go
+    // job is the struct that holds info about background processes
+    type job struct {
+            // pid associated with currently running process in the job
+            pid int
+            // jid associated with this job
+            jid int
+            // command that created this job
+            command string
+            // reference to the current process
+            process *os.Process
+    }
+  #+end_src
+  Each job in an instance of Quash will be assigned a unique job
+  identifier (=jid=). Jobs are referenced using these identifiers when using
+  built in commands such as jobs or kill (see *Builtins*). Additionally,
+  each job will print a message when they are first created and when they
+  terminate. If one process within a pipe chain terminates with an error,
+  the job will terminate. 
 * Builtins
+  Quash has a handful of pre-defined keywords that perform special functionality
+  for the user. These commands are: =exit=, =quit=, =set=, =cd=, =kill=, =jobs=, and
+  =history=. These built in functions cannot be executed as part of a chain of
+  processes, as they are not themselves process. Instead they are functions that
+  manipulate aspects of the shell, such as changing the environment. 
+** =quit= / =exit=
+   =quit= and =exit= are aliases for the same function within Quash. This function
+   terminates Quash.
+   #+begin_src sh
+     Usage: quit or exit
+   #+end_src
+** =set=
+   =set= allows the user to change environment variables, such as the current
+   working PATH. The initial variables and values are set by the OS. =set= can
+   also add a new variable to Quash’s environment (but not the OS’s
+   environment).
+   #+begin_src sh
+     Usage: set variable
+   #+end_src
+   where =variable= is the name of the variable to add or update, and value is the
+   value to set variable as.
+** =cd=
+   =cd= stands for change directory. cd changes the current directory that Quash
+   is working within.
+   #+begin_src sh
+     Usage: cd directory
+   #+end_src
+    where =directory= is an absolute or relative path to change to. If no
+    directory is specified, then cd will change the directory to the =$HOME=
+    directory specified in Quash’s environment.
+** =kill=
+   =kill= allows the user to manually send signals to a currently executing
+   job. This is especially useful for sending signals to forcefully end the job,
+   hence the name =kill=.
+   #+begin_src sh
+     Usage: kill signal jid
+   #+end_src
+   where =signal= is the number of the signal you wish to send (check your OS to
+   see what number each signal corresponds to) and =jid= is the job identification
+   number corresponding to the job you wish to signal.
+** =jobs=
+   =jobs= prints all currently executing background jobs.
+   #+begin_src sh
+     Usage: jobs
+   #+end_src
+   Output: =[jid] pid running in background= where =jid= is the job identification
+   number for the job and =pid= is the process identification number for the
+   currently executing process within the job. This line is printed for each
+   currently running job, sorted by =jid=.
+** =history=
+   =history= prints a list of all previous valid commands used within the current
+   execution of Quash. If the command failed, such as misspelling an executable
+   name, the command will not be added to the history.
+   #+begin_src sh
+     Usage: history
+   #+end_src
+   Output: =number cmd= where =number= is the index of the command starting
+   at 1 and =cmd= is the entire text of the previous command. This line is printed
+   for every previous valid command, sorted by number. 
 * Arrow Keys

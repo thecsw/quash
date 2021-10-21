@@ -1,4 +1,4 @@
-% Created 2021-10-20 Wed 14:09
+% Created 2021-10-20 Wed 20:55
 % Intended LaTeX compiler: xelatex
 \documentclass[12pt]{article}
 \usepackage{graphicx}
@@ -86,11 +86,11 @@
 \tableofcontents
 
 \section{Quash}
-\label{sec:org8e17f0a}
+\label{sec:orgea234b1}
 Quash is the best shell in the entirety of our existence. Let's walk through
 how it's built!
 \section{Forking and Executing}
-\label{sec:org37b2698}
+\label{sec:orge5713eb}
 Quash is implemented in \href{https://golang.org}{Go}, which itself is a garbage-collected language that
 runs threads to maintain the language runtime. When we want to fork from a Go
 application, the forking will only spawn a copy of the thread that initiated
@@ -116,7 +116,7 @@ current active directory where we are located, \texttt{Env} is a slice of string
 contains our environmental variables, \texttt{Files} is a slice of unsigned file
 descriptor pointer values, and \texttt{Sys} is a struct to pass additional options.
 \section{\texttt{PATH}}
-\label{sec:orgc4d50d9}
+\label{sec:org0c24579}
 In order to run executables, we have to have a list of directors where we
 would look for one. For this, we have our \texttt{PATH} environmental variable. Quash
 solves this problem rather simply by going through all the directories in \texttt{PATH}
@@ -165,7 +165,7 @@ Notice that the function would return the full path for a binary (example if
 \texttt{/usr/bin/echo}). \texttt{getenv} and \texttt{setenv} are our user-defined functions that access
 the global variable \texttt{myEnv}, which holds all of our active environmental variables.
 \section{Pipes}
-\label{sec:orgd8e09c2}
+\label{sec:orgcb1e036}
 Quash allows the user to sequentially run multiple programs while passing the
 output data from one program to the input data of the next program in the
 sequence. This is accomplished with the use of pipes. When Quash receives a
@@ -259,9 +259,100 @@ Note that in C you would have to also close excess pipes between the fork and
 execute function calls in the child process, but in Go we only assigned the
 child process the necessary pipes, so no additional pipes need to be closed. 
 \section{Background Processes}
-\label{sec:org72eea1a}
+\label{sec:org84278cc}
+Like many other shell programs, Quash has the ability to execute programs in
+either the foreground or the background. A program or group of programs
+running in the background is called a job. A program is designated to run in
+the background as a job by adding the \& character to the end of the command. A
+set of programs linked by pipes can also be run in the background the same
+way, using a single \& at the very end. For example, \texttt{ls \&} and \texttt{ls | wc \&} both
+create jobs that will execute in the background.
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{go}
+// job is the struct that holds info about background processes
+type job struct {
+        // pid associated with currently running process in the job
+        pid int
+        // jid associated with this job
+        jid int
+        // command that created this job
+        command string
+        // reference to the current process
+        process *os.Process
+}
+\end{minted}
+Each job in an instance of Quash will be assigned a unique job
+identifier (\texttt{jid}). Jobs are referenced using these identifiers when using
+built in commands such as jobs or kill (see \textbf{Builtins}). Additionally,
+each job will print a message when they are first created and when they
+terminate. If one process within a pipe chain terminates with an error,
+the job will terminate. 
 \section{Builtins}
-\label{sec:org6c0805b}
+\label{sec:orga162de2}
+Quash has a handful of pre-defined keywords that perform special functionality
+for the user. These commands are: \texttt{exit}, \texttt{quit}, \texttt{set}, \texttt{cd}, \texttt{kill}, \texttt{jobs}, and
+\texttt{history}. These built in functions cannot be executed as part of a chain of
+processes, as they are not themselves process. Instead they are functions that
+manipulate aspects of the shell, such as changing the environment. 
+\subsection{\texttt{quit} / \texttt{exit}}
+\label{sec:orga756e6f}
+\texttt{quit} and \texttt{exit} are aliases for the same function within Quash. This function
+terminates Quash.
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{sh}
+Usage: quit or exit
+\end{minted}
+\subsection{\texttt{set}}
+\label{sec:orgf4728bd}
+\texttt{set} allows the user to change environment variables, such as the current
+working PATH. The initial variables and values are set by the OS. \texttt{set} can
+also add a new variable to Quash’s environment (but not the OS’s
+environment).
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{sh}
+Usage: set variable
+\end{minted}
+where \texttt{variable} is the name of the variable to add or update, and value is the
+value to set variable as.
+\subsection{\texttt{cd}}
+\label{sec:org273c3a0}
+\texttt{cd} stands for change directory. cd changes the current directory that Quash
+is working within.
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{sh}
+Usage: cd directory
+\end{minted}
+where \texttt{directory} is an absolute or relative path to change to. If no
+directory is specified, then cd will change the directory to the \texttt{\$HOME}
+directory specified in Quash’s environment.
+\subsection{\texttt{kill}}
+\label{sec:org83991bb}
+\texttt{kill} allows the user to manually send signals to a currently executing
+job. This is especially useful for sending signals to forcefully end the job,
+hence the name \texttt{kill}.
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{sh}
+Usage: kill signal jid
+\end{minted}
+where \texttt{signal} is the number of the signal you wish to send (check your OS to
+see what number each signal corresponds to) and \texttt{jid} is the job identification
+number corresponding to the job you wish to signal.
+\subsection{\texttt{jobs}}
+\label{sec:org2f06d88}
+\texttt{jobs} prints all currently executing background jobs.
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{sh}
+Usage: jobs
+\end{minted}
+Output: \texttt{[jid] pid running in background} where \texttt{jid} is the job identification
+number for the job and \texttt{pid} is the process identification number for the
+currently executing process within the job. This line is printed for each
+currently running job, sorted by \texttt{jid}.
+\subsection{\texttt{history}}
+\label{sec:orgb5c19d0}
+\texttt{history} prints a list of all previous valid commands used within the current
+execution of Quash. If the command failed, such as misspelling an executable
+name, the command will not be added to the history.
+\begin{minted}[frame=lines,fontsize=\footnotesize,obeytabs,mathescape,numbersep=5pt,numbersep=2mm,xleftmargin=0.25in]{sh}
+Usage: history
+\end{minted}
+Output: \texttt{number cmd} where \texttt{number} is the index of the command starting
+at 1 and \texttt{cmd} is the entire text of the previous command. This line is printed
+for every previous valid command, sorted by number. 
 \section{Arrow Keys}
-\label{sec:orgc600fcc}
+\label{sec:org411da29}
 \end{document}

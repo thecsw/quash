@@ -1,0 +1,13 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{c+c1}{// job is the struct that holds info about background processes}
+\PYG{k+kd}{type} \PYG{n+nx}{job} \PYG{k+kd}{struct} \PYG{p}{\PYGZob{}}
+        \PYG{c+c1}{// pid associated with currently running process in the job}
+        \PYG{n+nx}{pid} \PYG{k+kt}{int}
+        \PYG{c+c1}{// jid associated with this job}
+        \PYG{n+nx}{jid} \PYG{k+kt}{int}
+        \PYG{c+c1}{// command that created this job}
+        \PYG{n+nx}{command} \PYG{k+kt}{string}
+        \PYG{c+c1}{// reference to the current process}
+        \PYG{n+nx}{process} \PYG{o}{*}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{Process}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}
