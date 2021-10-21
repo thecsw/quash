@@ -4,6 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
+	"syscall"
+	"unicode"
 
 	"github.com/eiannone/keyboard"
 )
@@ -39,7 +42,17 @@ func takeInput(reader *bufio.Reader) string {
 			return input + string(char)
 		}
 		// On Ctrl-D or Escape just close the shell altogether
-		if key == keyboard.KeyEsc || key == keyboard.KeyCtrlD {
+		if key == keyboard.KeyEsc {
+			if isTerminal {
+				fmt.Fprint(os.Stdout, NEWLINE)
+			}
+			exit(nil)
+		}
+		// Only exit on Ctrl-D if input is empty
+		if key == keyboard.KeyCtrlD {
+			if curPosition != 0 || len(input) != 0 {
+				continue
+			}
 			if isTerminal {
 				fmt.Fprint(os.Stdout, NEWLINE)
 			}
@@ -87,12 +100,42 @@ func takeInput(reader *bufio.Reader) string {
 			if cmdNum >= len(goodHistory)-1 {
 				input = ""
 				cmdNum = len(goodHistory)
+				curPosition = 0
 				continue
 			}
 			// Get the later good command
 			cmdNum = nextCmdNum(cmdNum)
 			input = printOldGoodCommand(cmdNum)
 			curPosition = len(input)
+			continue
+		}
+		// Ignore left and right arrow keys
+		if key == keyboard.KeyArrowLeft || key == keyboard.KeyArrowRight {
+			continue
+		}
+		// Send kill signals if ctrl is encountered or clear the input
+		if key == keyboard.KeyCtrlC {
+			// Don't do anything if we have an empty command
+			if curPosition == 0 && len(input) == 0 {
+				sigintChan <- syscall.SIGINT
+				continue
+			}
+			fmt.Fprintf(os.Stdout, "\033[41m^C\033[0m\n")
+			input = ""
+			curPosition = 0
+			greet()
+			continue
+		}
+		// Ctrl-L should clear the screen
+		if key == keyboard.KeyCtrlL {
+			executeInput("clear")
+			greet()
+			// Reprint whatever we had before
+			fmt.Fprintf(os.Stdout, "%s", input)
+			continue
+		}
+		// If the character is NOT printable, skip saving it
+		if !unicode.IsPrint(readCharacter) {
 			continue
 		}
 		// Print the character that we swallowed up and append to input
@@ -119,7 +162,11 @@ func takeInput(reader *bufio.Reader) string {
 
 // printOldGoodCommand prints the old good command and returns it
 func printOldGoodCommand(cmdNum int) string {
-	command := goodHistory[cmdNum]
+	// If outside of bounds, return empty just in case
+	if cmdNum < 0 || cmdNum >= len(goodHistory) {
+		return ""
+	}
+	command := strings.TrimSpace(goodHistory[cmdNum])
 	fmt.Fprint(os.Stdout, command)
 	return command
 }
@@ -129,16 +176,16 @@ func resetTermInput(what int) {
 	// Wipe out the user input AND the greeting
 	// re-greet them later
 	//
-	printN(what+greetLength, "\b")
-	printN(what+greetLength, " ")
-	printN(what+greetLength, "\b")
-	greet()
+	// printN(what+greetLength, "\b")
+	// printN(what+greetLength, " ")
+	// printN(what+greetLength, "\b")
+	// greet()
 
 	// Only wipe out the user input
 	//
-	//printN(what, "\b")
-	//printN(what, " ")
-	//printN(what, "\b")
+	printN(what, "\b")
+	printN(what, " ")
+	printN(what, "\b")
 }
 
 // prevCmdNum gives last good command index
@@ -159,7 +206,9 @@ func nextCmdNum(cmdNum int) int {
 
 // printN prints string N times
 func printN(what int, str string) {
+	finalPrint := ""
 	for i := 0; i < what; i++ {
-		fmt.Fprint(os.Stdout, str)
+		finalPrint += str
 	}
+	fmt.Fprint(os.Stdout, finalPrint)
 }

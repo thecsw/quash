@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"syscall"
 )
 
 const (
@@ -32,9 +31,27 @@ func greet() {
 func jobStopper() {
 	for {
 		<-sigintChan
-		if currJob == 0 {
+		if len(jobList) == 0 {
 			continue
 		}
-		syscall.Kill(currJob, syscall.SIGINT)
+		maxJob := findMaxJobInBg()
+		if maxJob == -1 {
+			continue
+		}
+		killJob([]string{
+			"kill",
+			"9",
+			fmt.Sprintf("%d", maxJob)})
 	}
+}
+
+// findMaxJobInBg returns maximum integer key in a
+func findMaxJobInBg() int {
+	maxKey := -1
+	for k := range jobList {
+		if k > maxKey {
+			maxKey = k
+		}
+	}
+	return maxKey
 }
