@@ -44,6 +44,7 @@ func trackChild(jid int) {
 
 // job is the struct that holds info about background processes
 type job struct {
+	// pid associated with currently running process in the job
 	pid int
 	// jid associated with this job
 	jid int
