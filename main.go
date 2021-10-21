@@ -195,7 +195,6 @@ func executeCommand(command string, index int, pipeRead []*os.File, pipeWrite []
 func backgroundExecution(input string) {
 	jid := nextJobID
 	newJob := job{jid: jid, command: input}
-	nextJobID++
 	input = strings.TrimSpace(strings.Replace(input, "&", "", 1))
 	//go trackChild(jid)
 
@@ -234,6 +233,7 @@ func backgroundExecution(input string) {
 		jobList[jid] = newJob
 		if index == 0 {
 			//runningProcessPid[jid] = pid
+			nextJobID++ // job succesfully started so increment jid counter
 			fmt.Printf("[%d] %d running in background\n", jid, pid)
 		}
 
