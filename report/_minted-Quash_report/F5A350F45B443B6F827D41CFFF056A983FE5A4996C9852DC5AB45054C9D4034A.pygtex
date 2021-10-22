@@ -1,0 +1,135 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{c+c1}{// takeInput reads a newline\PYGZhy{}terminated input from a bufio reader}
+\PYG{k+kd}{func} \PYG{n+nx}{takeInput}\PYG{p}{(}\PYG{n+nx}{reader} \PYG{o}{*}\PYG{n+nx}{bufio}\PYG{p}{.}\PYG{n+nx}{Reader}\PYG{p}{)} \PYG{k+kt}{string} \PYG{p}{\PYGZob{}}
+        \PYG{k}{if} \PYG{n+nx}{err} \PYG{o}{:=} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{Open}\PYG{p}{();} \PYG{n+nx}{err} \PYG{o}{!=} \PYG{k+kc}{nil} \PYG{p}{\PYGZob{}}
+                \PYG{n+nb}{panic}\PYG{p}{(}\PYG{n+nx}{err}\PYG{p}{)}
+        \PYG{p}{\PYGZcb{}}
+        \PYG{k}{defer} \PYG{k+kd}{func}\PYG{p}{()} \PYG{p}{\PYGZob{}}
+                \PYG{n+nx}{\PYGZus{}} \PYG{p}{=} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{Close}\PYG{p}{()}
+        \PYG{p}{\PYGZcb{}()}
+
+        \PYG{n+nx}{cmdNum} \PYG{o}{:=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{goodHistory}\PYG{p}{)}
+        \PYG{k+kd}{var} \PYG{n+nx}{readCharacter} \PYG{k+kt}{rune}
+        \PYG{n+nx}{input} \PYG{o}{:=} \PYG{l+s}{\PYGZdq{}\PYGZdq{}}
+        \PYG{n+nx}{curPosition} \PYG{o}{:=} \PYG{l+m+mi}{0}
+
+        \PYG{k}{for} \PYG{p}{\PYGZob{}}
+                \PYG{n+nx}{char}\PYG{p}{,} \PYG{n+nx}{key}\PYG{p}{,} \PYG{n+nx}{err} \PYG{o}{:=} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{GetKey}\PYG{p}{()}
+                \PYG{k}{if} \PYG{n+nx}{err} \PYG{o}{!=} \PYG{k+kc}{nil} \PYG{p}{\PYGZob{}}
+                        \PYG{n+nx}{quashError}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}bad input: \PYGZpc{}s\PYGZdq{}}\PYG{p}{,} \PYG{n+nx}{err}\PYG{p}{.}\PYG{n+nx}{Error}\PYG{p}{())}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{n+nx}{readCharacter} \PYG{p}{=} \PYG{n+nx}{char}
+
+                \PYG{c+c1}{// See what key we actually pressed, I tried doing switch}
+                \PYG{c+c1}{// but it works kinda wonky. If statements forever \PYGZlt{}3}
+                \PYG{c+c1}{// \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+
+                \PYG{c+c1}{// On enter, flush a newline and return whatever we have}
+                \PYG{k}{if} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyEnter} \PYG{p}{\PYGZob{}}
+                        \PYG{n+nx}{fmt}\PYG{p}{.}\PYG{n+nx}{Fprint}\PYG{p}{(}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{Stdout}\PYG{p}{,} \PYG{n+nx}{NEWLINE}\PYG{p}{)}
+                        \PYG{k}{return} \PYG{n+nx}{input} \PYG{o}{+} \PYG{n+nb}{string}\PYG{p}{(}\PYG{n+nx}{char}\PYG{p}{)}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// On Ctrl\PYGZhy{}D or Escape just close the shell altogether}
+                \PYG{k}{if} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyEsc} \PYG{p}{\PYGZob{}}
+                        \PYG{k}{if} \PYG{n+nx}{isTerminal} \PYG{p}{\PYGZob{}}
+                                \PYG{n+nx}{fmt}\PYG{p}{.}\PYG{n+nx}{Fprint}\PYG{p}{(}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{Stdout}\PYG{p}{,} \PYG{n+nx}{NEWLINE}\PYG{p}{)}
+                        \PYG{p}{\PYGZcb{}}
+                        \PYG{n+nx}{exit}\PYG{p}{(}\PYG{k+kc}{nil}\PYG{p}{)}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// Only exit on Ctrl\PYGZhy{}D if input is empty}
+                \PYG{k}{if} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyCtrlD} \PYG{p}{\PYGZob{}}
+                        \PYG{k}{if} \PYG{n+nx}{curPosition} \PYG{o}{!=} \PYG{l+m+mi}{0} \PYG{o}{||} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{input}\PYG{p}{)} \PYG{o}{!=} \PYG{l+m+mi}{0} \PYG{p}{\PYGZob{}}
+                                \PYG{k}{continue}
+                        \PYG{p}{\PYGZcb{}}
+                        \PYG{k}{if} \PYG{n+nx}{isTerminal} \PYG{p}{\PYGZob{}}
+                                \PYG{n+nx}{fmt}\PYG{p}{.}\PYG{n+nx}{Fprint}\PYG{p}{(}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{Stdout}\PYG{p}{,} \PYG{n+nx}{NEWLINE}\PYG{p}{)}
+                        \PYG{p}{\PYGZcb{}}
+                        \PYG{n+nx}{exit}\PYG{p}{(}\PYG{k+kc}{nil}\PYG{p}{)}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// On a space just set readCharacter to a space run}
+                \PYG{k}{if} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeySpace} \PYG{p}{\PYGZob{}}
+                        \PYG{n+nx}{readCharacter} \PYG{p}{=} \PYG{l+s+sc}{\PYGZsq{} \PYGZsq{}}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// On backspace, move cursor to the left, clean character,}
+                \PYG{c+c1}{// and move the cursor again to the left. Delete last input element}
+                \PYG{k}{if} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyBackspace} \PYG{o}{||} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyBackspace2} \PYG{p}{\PYGZob{}}
+                        \PYG{c+c1}{// If cursor is already at the home position, don\PYGZsq{}t move}
+                        \PYG{k}{if} \PYG{n+nx}{curPosition} \PYG{p}{\PYGZlt{}} \PYG{l+m+mi}{1} \PYG{p}{\PYGZob{}}
+                                \PYG{k}{continue}
+                        \PYG{p}{\PYGZcb{}}
+                        \PYG{n+nx}{fmt}\PYG{p}{.}\PYG{n+nx}{Fprintf}\PYG{p}{(}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{Stdout}\PYG{p}{,} \PYG{l+s}{\PYGZdq{}\PYGZbs{}b \PYGZbs{}b\PYGZdq{}}\PYG{p}{)}
+                        \PYG{n+nx}{input} \PYG{p}{=} \PYG{n+nx}{input}\PYG{p}{[:}\PYG{n+nx}{curPosition}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1}\PYG{p}{]}
+                        \PYG{n+nx}{curPosition}\PYG{o}{\PYGZhy{}\PYGZhy{}}
+                        \PYG{k}{continue}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// On arrow up press, clean out the terminal and replace the user input}
+                \PYG{c+c1}{// with whatever previous good command we can find. Works on multiple}
+                \PYG{c+c1}{// arrow up key presses too}
+                \PYG{k}{if} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyArrowUp} \PYG{p}{\PYGZob{}}
+                        \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{goodHistory}\PYG{p}{)} \PYG{p}{\PYGZlt{}} \PYG{l+m+mi}{1} \PYG{p}{\PYGZob{}}
+                                \PYG{k}{continue}
+                        \PYG{p}{\PYGZcb{}}
+                        \PYG{c+c1}{// Clear the input first}
+                        \PYG{n+nx}{resetTermInput}\PYG{p}{(}\PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{input}\PYG{p}{))}
+                        \PYG{n+nx}{cmdNum} \PYG{p}{=} \PYG{n+nx}{prevCmdNum}\PYG{p}{(}\PYG{n+nx}{cmdNum}\PYG{p}{)}
+                        \PYG{n+nx}{input} \PYG{p}{=} \PYG{n+nx}{printOldGoodCommand}\PYG{p}{(}\PYG{n+nx}{cmdNum}\PYG{p}{)}
+                        \PYG{n+nx}{curPosition} \PYG{p}{=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{input}\PYG{p}{)}
+                        \PYG{k}{continue}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// On arrow down press, clean out the terminal and replace with whatever}
+                \PYG{c+c1}{// command came after. Only makes sense if run after one or mory presses}
+                \PYG{c+c1}{// of the arrow up key. On the bottom it will set user input to just clean}
+                \PYG{k}{if} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyArrowDown} \PYG{p}{\PYGZob{}}
+                        \PYG{k}{if} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{goodHistory}\PYG{p}{)} \PYG{p}{\PYGZlt{}} \PYG{l+m+mi}{1} \PYG{p}{\PYGZob{}}
+                                \PYG{k}{continue}
+                        \PYG{p}{\PYGZcb{}}
+                        \PYG{n+nx}{resetTermInput}\PYG{p}{(}\PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{input}\PYG{p}{))}
+                        \PYG{c+c1}{// If at the end of history, just clear the input}
+                        \PYG{k}{if} \PYG{n+nx}{cmdNum} \PYG{o}{\PYGZgt{}=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{goodHistory}\PYG{p}{)}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1} \PYG{p}{\PYGZob{}}
+                                \PYG{n+nx}{input} \PYG{p}{=} \PYG{l+s}{\PYGZdq{}\PYGZdq{}}
+                                \PYG{n+nx}{cmdNum} \PYG{p}{=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{goodHistory}\PYG{p}{)}
+                                \PYG{n+nx}{curPosition} \PYG{p}{=} \PYG{l+m+mi}{0}
+                                \PYG{k}{continue}
+                        \PYG{p}{\PYGZcb{}}
+                        \PYG{c+c1}{// Get the later good command}
+                        \PYG{n+nx}{cmdNum} \PYG{p}{=} \PYG{n+nx}{nextCmdNum}\PYG{p}{(}\PYG{n+nx}{cmdNum}\PYG{p}{)}
+                        \PYG{n+nx}{input} \PYG{p}{=} \PYG{n+nx}{printOldGoodCommand}\PYG{p}{(}\PYG{n+nx}{cmdNum}\PYG{p}{)}
+                        \PYG{n+nx}{curPosition} \PYG{p}{=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{input}\PYG{p}{)}
+                        \PYG{k}{continue}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// Ignore left and right arrow keys}
+                \PYG{k}{if} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyArrowLeft} \PYG{o}{||} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyArrowRight} \PYG{p}{\PYGZob{}}
+                        \PYG{k}{continue}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// Send kill signals if ctrl is encountered or clear the input}
+                \PYG{k}{if} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyCtrlC} \PYG{p}{\PYGZob{}}
+                        \PYG{c+c1}{// Don\PYGZsq{}t do anything if we have an empty command}
+                        \PYG{k}{if} \PYG{n+nx}{curPosition} \PYG{o}{==} \PYG{l+m+mi}{0} \PYG{o}{\PYGZam{}\PYGZam{}} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{input}\PYG{p}{)} \PYG{o}{==} \PYG{l+m+mi}{0} \PYG{p}{\PYGZob{}}
+                                \PYG{n+nx}{sigintChan} \PYG{o}{\PYGZlt{}\PYGZhy{}} \PYG{n+nx}{syscall}\PYG{p}{.}\PYG{n+nx}{SIGINT}
+                                \PYG{k}{continue}
+                        \PYG{p}{\PYGZcb{}}
+                        \PYG{n+nx}{fmt}\PYG{p}{.}\PYG{n+nx}{Fprintf}\PYG{p}{(}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{Stdout}\PYG{p}{,} \PYG{l+s}{\PYGZdq{}\PYGZbs{}033[41m\PYGZca{}C\PYGZbs{}033[0m\PYGZbs{}n\PYGZdq{}}\PYG{p}{)}
+                        \PYG{n+nx}{input} \PYG{p}{=} \PYG{l+s}{\PYGZdq{}\PYGZdq{}}
+                        \PYG{n+nx}{curPosition} \PYG{p}{=} \PYG{l+m+mi}{0}
+                        \PYG{n+nx}{greet}\PYG{p}{()}
+                        \PYG{k}{continue}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// Ctrl\PYGZhy{}L should clear the screen}
+                \PYG{k}{if} \PYG{n+nx}{key} \PYG{o}{==} \PYG{n+nx}{keyboard}\PYG{p}{.}\PYG{n+nx}{KeyCtrlL} \PYG{p}{\PYGZob{}}
+                        \PYG{n+nx}{executeInput}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}clear\PYGZdq{}}\PYG{p}{)}
+                        \PYG{n+nx}{greet}\PYG{p}{()}
+                        \PYG{c+c1}{// Reprint whatever we had before}
+                        \PYG{n+nx}{fmt}\PYG{p}{.}\PYG{n+nx}{Fprintf}\PYG{p}{(}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{Stdout}\PYG{p}{,} \PYG{l+s}{\PYGZdq{}\PYGZpc{}s\PYGZdq{}}\PYG{p}{,} \PYG{n+nx}{input}\PYG{p}{)}
+                        \PYG{k}{continue}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// If the character is NOT printable, skip saving it}
+                \PYG{k}{if} \PYG{p}{!}\PYG{n+nx}{unicode}\PYG{p}{.}\PYG{n+nx}{IsPrint}\PYG{p}{(}\PYG{n+nx}{readCharacter}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+                        \PYG{k}{continue}
+                \PYG{p}{\PYGZcb{}}
+                \PYG{c+c1}{// Print the character that we swallowed up and append to input}
+                \PYG{n+nx}{fmt}\PYG{p}{.}\PYG{n+nx}{Fprint}\PYG{p}{(}\PYG{n+nx}{os}\PYG{p}{.}\PYG{n+nx}{Stdout}\PYG{p}{,} \PYG{n+nb}{string}\PYG{p}{(}\PYG{n+nx}{readCharacter}\PYG{p}{))}
+                \PYG{n+nx}{input} \PYG{o}{+=} \PYG{n+nb}{string}\PYG{p}{(}\PYG{n+nx}{readCharacter}\PYG{p}{)}
+                \PYG{n+nx}{curPosition} \PYG{p}{=} \PYG{n+nb}{len}\PYG{p}{(}\PYG{n+nx}{input}\PYG{p}{)}
+        \PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}
