@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -55,7 +56,7 @@ func setStdinRedirect(
 ) (string, error) {
 	matches := stdinFileRegex.FindAllStringSubmatch(command, -1)
 	filename := matches[0][1]
-	infile, err := os.Open(filename)
+	infile, err := os.Open(filepath.Join(currDir, filename))
 	//defer infile.Close()
 	if err != nil {
 		return "", errors.Wrap(err, "couldn't open in file")
@@ -72,7 +73,7 @@ func setStdoutRedirect(
 ) (string, error) {
 	matches := stdoutFileRegex.FindAllStringSubmatch(command, -1)
 	filename := matches[0][1]
-	outfile, err := os.Create(filename)
+	outfile, err := os.Create(filepath.Join(currDir, filename))
 	//defer outfile.Close()
 	if err != nil {
 		return "", errors.Wrap(err, "couldn't create out file")
@@ -89,7 +90,7 @@ func setStderrRedirect(
 ) (string, error) {
 	matches := stderrFileRegex.FindAllStringSubmatch(command, -1)
 	filename := matches[0][1]
-	errfile, err := os.Create(filename)
+	errfile, err := os.Create(filepath.Join(currDir, filename))
 	//defer errfile.Close()
 	if err != nil {
 		return "", errors.Wrap(err, "couldn't create err file")
