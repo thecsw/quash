@@ -63,7 +63,7 @@ func main() {
 	}
 }
 
-// runShell takes the user's shell input and runs that command
+// runShell takes an input reader and runs the shell
 func runShell(reader *bufio.Reader) {
 	// Greet the user if we are in the terminal
 	if isTerminal {
@@ -135,6 +135,7 @@ func executeInput(input string) {
 	addToHistory(input)
 }
 
+// executeCommand takes a command and executes it in a new process
 func executeCommand(command string, index int, pipeRead []*os.File, pipeWrite []*os.File) (int, error) {
 	var err error
 	// Find all of our destinations
@@ -192,6 +193,7 @@ func executeCommand(command string, index int, pipeRead []*os.File, pipeWrite []
 	return pid, nil
 }
 
+// backgroundExecution takes a command and executes it in the background
 func backgroundExecution(input string) {
 	jid := nextJobID
 	newJob := job{jid: jid, command: input}

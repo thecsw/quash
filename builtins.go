@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	// Builtin commands
 	builtins = map[string]func(args []string){
 		"exit":    exit,
 		"quit":    exit,
