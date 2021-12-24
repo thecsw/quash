@@ -36,6 +36,8 @@
 * Quash
   Quash is the best shell in the entirety of our existence. Let's walk through
   how it's built!
+
+  [![asciicast](https://asciinema.org/a/mLpe2p5VM1fPtTbbSQUVrcFB8.svg)](https://asciinema.org/a/mLpe2p5VM1fPtTbbSQUVrcFB8)
 * Forking and Executing
   Quash is implemented in [[https://golang.org][Go]], which itself is a garbage-collected language that
   runs threads to maintain the language runtime. When we want to fork from a Go
