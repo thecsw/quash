@@ -3,7 +3,7 @@ module github.com/thecsw/quash
 go 1.17
 
 require (
-	github.com/eiannone/keyboard v0.0.0-20200508000154-caf4b762e807
+	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0
 )
